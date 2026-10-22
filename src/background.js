@@ -59,7 +59,7 @@ async function start() {
         }
         if (!alive(child.pid)) break;
     }
-    console.log(`Perch did not start. Port ${PORT} may be taken by another program; see ${LOG_FILE}`);
+    console.log(`Perch did not start. Port ${PORT} may be taken by another program (such as the Perch desktop app); see ${LOG_FILE}`);
     process.exitCode = 1;
 }
 

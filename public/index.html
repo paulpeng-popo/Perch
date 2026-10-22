@@ -32,6 +32,7 @@
     <a id="update-link" class="small-btn primary" target="_blank" rel="noopener noreferrer">下載新版</a>
     <button id="update-later" class="small">這版不再提醒</button>
 </div>
+<div id="port-warn" class="top-banner warn hidden"></div>
 
 <section id="now" class="hidden">
     <div class="now-text"></div>
@@ -127,6 +128,11 @@
 
         <div class="card" id="acct-add">
             <h2>新增帳號</h2>
+            <div class="app-only hidden">
+                <p class="muted">開一個 x.com 登入視窗，你自己登入後會自動加進來。登入視窗用完就丟，不會留在電腦上，也不用在 x.com 按登出（登出會讓這組登入失效）。</p>
+                <button id="btn-login-x" class="primary">登入 X</button>
+                <p id="login-x-state" class="muted"></p>
+            </div>
             <details id="manual-cookie" class="manual-cookie">
                 <summary>手動貼 cookie</summary>
                 <p class="muted">在瀏覽器登入要加的帳號 → 按 <kbd>F12</kbd> →「應用程式／Application」→ Cookie → <code>https://x.com</code>，複製 <code>auth_token</code> 和 <code>ct0</code> 的值貼到下面。也可以把整串 Cookie 標頭直接貼進任一格。</p>
@@ -144,7 +150,16 @@
             <p class="muted">存成 <code>資料夾/帳號/推文ID_第幾張.副檔名</code>，已存在的會略過。</p>
             <div class="actions">
                 <button id="btn-save-root" class="primary">儲存</button>
+                <button id="btn-pick-root" class="app-only hidden">選擇資料夾…</button>
+                <button id="btn-open-root" class="app-only hidden">打開下載資料夾</button>
             </div>
+        </div>
+
+        <div class="card app-only hidden">
+            <h2>App 資料</h2>
+            <p class="muted">帳號、設定、內建瀏覽器的快取都只放在這個資料夾。不用 Perch 時把整個 app 資料夾刪掉，電腦上就不會留下任何東西（下載的圖片影片除外）。</p>
+            <p><code id="app-data-dir"></code></p>
+            <button id="btn-open-data">打開資料夾</button>
         </div>
 
         <div class="card">

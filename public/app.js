@@ -179,9 +179,18 @@ if (perchChannel) {
     };
 }
 
+// Not on the usual port this time (taken by another program): RSS feed URLs differ, so warn about it
+function renderPortWarn(p) {
+    const el = $('#port-warn');
+    if (!p || !p.fallback) return el.classList.add('hidden');
+    el.textContent = `連接埠 ${p.usual} 被別的程式占用（例如另外開著的 Perch），這次改用 ${p.current}，RSS 訂閱的網址會跟平常不同而收不到更新。關掉占用的程式後重開 Perch 就會恢復。`;
+    el.classList.remove('hidden');
+}
+
 async function pollStatus() {
     try {
         const s = await api('GET', '/api/status');
+        renderPortWarn(s.port);
         applyAuth(s.auth, s.accounts);
 
         const now = $('#now');
@@ -377,6 +386,54 @@ $('#btn-check-update').addEventListener('click', guard(async () => {
 }));
 setTimeout(() => checkUpdate(), 3000);
 setInterval(() => checkUpdate(), 6 * 60 * 60 * 1000);
+
+// ---- Desktop-only features (Electron): window.perch comes from electron/preload.js ----
+const desktop = window.perch && window.perch.isApp ? window.perch : null;
+if (desktop) {
+    document.querySelectorAll('.app-only').forEach((el) => el.classList.remove('hidden'));
+    document.body.classList.add('is-app');
+    desktop.info().then((i) => {
+        $('#app-data-dir').textContent = i.dataDir;
+    }).catch(() => {});
+    $('#btn-login-x').addEventListener('click', guard(async () => {
+        const btn = $('#btn-login-x');
+        btn.disabled = true;
+        $('#login-x-state').textContent = '請在跳出的視窗登入 X，登入完會自動關閉…';
+        try {
+            const r = await desktop.loginX();
+            if (r.cancelled) {
+                $('#login-x-state').textContent = '已取消';
+            } else if (r.error) {
+                $('#login-x-state').textContent = `失敗：${r.error}`;
+            } else {
+                applyAuthLocal(r);
+                $('#login-x-state').textContent = '';
+                toast(r.auth.ok ? `已新增並切換到 @${r.auth.user.screen_name}` : `登入了，但檢查失敗：${r.auth.error}`);
+                await loadSettings();
+            }
+        } finally {
+            btn.disabled = false;
+        }
+    }));
+    $('#btn-pick-root').addEventListener('click', guard(async () => {
+        const dir = await desktop.pickFolder();
+        if (!dir) return;
+        await api('PUT', '/api/settings', { download_root: dir });
+        toast('已儲存');
+        await loadSettings();
+    }));
+    $('#btn-open-root').addEventListener('click', guard(async () => {
+        const r = await desktop.openDownloads();
+        if (r.error) toast(`打不開：${r.error}`);
+    }));
+    $('#btn-open-data').addEventListener('click', guard(async () => {
+        const r = await desktop.openData();
+        if (r.error) toast(`打不開：${r.error}`);
+    }));
+} else {
+    // The browser version has no login window, so expand manual cookie entry
+    $('#manual-cookie').open = true;
+}
 
 applyIcons();
 applyPrefs();

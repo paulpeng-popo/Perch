@@ -12,7 +12,8 @@ const queue = [];
 let current = null;
 let stats = { done: 0, skipped: 0, failed: 0 };
 
-// Default: X inside the home folder's Downloads; PERCH_DOWNLOADS_DIR points at another Downloads folder
+// Default: X inside the system Downloads folder. The desktop app gets the real Downloads location from Electron
+// (the user may have moved it to another drive or OneDrive); the CLI version can only use the home folder's Downloads.
 const systemDownloads = () => process.env.PERCH_DOWNLOADS_DIR || path.join(os.homedir(), 'Downloads');
 const root = () => getSetting('download_root') || path.join(systemDownloads(), 'X');
 const safe = (s) => String(s || '').replace(/[<>:"/\\|?*\x00-\x1f]/g, '_').replace(/[. ]+$/, '').slice(0, 100) || '_';

@@ -14,7 +14,9 @@ const downloader = require('./downloader');
 
 const DEFAULT_PORT = Number(process.env.PORT) || 8788;
 const PID_FILE = path.join(DATA_DIR, 'server.pid');
-const IS_CLI = require.main === module; // run directly with node src/server.js
+const IS_CLI = require.main === module; // run directly with node src/server.js; the desktop app loads it from Electron
+// The port actually in use; the desktop app picks another one when the usual port is taken, and the UI warns that RSS URLs differ
+let portInfo = { current: DEFAULT_PORT, usual: DEFAULT_PORT, fallback: false };
 
 // Open a URL in the default browser (Windows / macOS / Linux)
 function openBrowser(url) {
@@ -27,7 +29,7 @@ function openBrowser(url) {
     } catch { /* can't open a browser: fine, the URL is already printed */ }
 }
 
-// Log why we exit and handle Ctrl+C.
+// CLI version: log why we exit and handle Ctrl+C. The desktop app manages its own process via Electron.
 if (IS_CLI) {
     process.on('exit', (code) => {
         // only remove the PID file we wrote ourselves
@@ -53,7 +55,14 @@ process.on('unhandledRejection', (e) => {
 const app = express();
 app.use(express.json({ limit: '1mb' }));
 // Frontend files are revalidated on every request (code changes take effect on refresh, no stale cache).
-app.use(express.static(path.join(__dirname, '..', 'public'), { setHeaders: (res) => res.set('Cache-Control', 'no-cache') }));
+// Desktop app: public is packaged into app.asar.unpacked (not inside the asar) so real files are read;
+// serving files from inside the asar makes Electron extract a copy into the system temp folder every time and never clean it up.
+function publicDir() {
+    const dir = path.join(__dirname, '..', 'public');
+    const unpacked = dir.replace(`app.asar${path.sep}`, `app.asar.unpacked${path.sep}`);
+    return unpacked !== dir && fs.existsSync(unpacked) ? unpacked : dir;
+}
+app.use(express.static(publicDir(), { setHeaders: (res) => res.set('Cache-Control', 'no-cache') }));
 
 const wrap = (fn) => (req, res) => {
     Promise.resolve()
@@ -92,7 +101,7 @@ async function checkAuth() {
     return authState;
 }
 
-app.get('/api/status', wrap(() => ({ auth: authState, accounts: accounts.publicList(), x: x.status(), ...downloader.snapshot(), log: lines.slice(-200) })));
+app.get('/api/status', wrap(() => ({ auth: authState, accounts: accounts.publicList(), x: x.status(), port: portInfo, ...downloader.snapshot(), log: lines.slice(-200) })));
 app.get('/api/update', wrap((req) => update.check(req.query.force === '1')));
 
 // Accept a whole pasted cookie string: pick out the one we need
@@ -102,6 +111,7 @@ const pick = (s, k) => {
 };
 
 // Add an account: verify the login with these cookies first; save and switch to it only on success.
+// Used by both cookie pasting on the settings page and the desktop app's in-app login.
 async function addAccount(auth, ct0) {
     if (!auth || !ct0) throw new Error('auth_token 和 ct0 都要填');
     const tmp = { key: `tmp-${Date.now()}`, auth_token: auth, ct0 };
@@ -243,11 +253,19 @@ function listen(port) {
     });
 }
 
-// Start the server
-async function start() {
-    const server = await listen(DEFAULT_PORT);
+// Start the server. opts.fallback: if the port is taken, use any free port instead (desktop app)
+async function start(opts = {}) {
+    let server;
+    try {
+        server = await listen(DEFAULT_PORT);
+    } catch (e) {
+        if (e.code !== 'EADDRINUSE' || !opts.fallback) throw e;
+        log(`連接埠 ${DEFAULT_PORT} 被占用，改用其他連接埠（RSS 網址會跟平常不同）`);
+        server = await listen(0);
+    }
     const port = server.address().port;
     const url = `http://127.0.0.1:${port}`;
+    portInfo = { current: port, usual: DEFAULT_PORT, fallback: port !== DEFAULT_PORT };
     log(`Web 介面：${url}`);
     x.init().catch((e) => log(`解析 X 前端失敗：${e.message}`));
     if (accounts.active()) checkAuth();
@@ -272,4 +290,4 @@ if (IS_CLI) {
         });
 }
 
-module.exports = { start };
+module.exports = { start, addAccount };
