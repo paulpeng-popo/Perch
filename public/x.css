@@ -131,6 +131,7 @@
 .pf-banner { aspect-ratio: 3 / 1; background: var(--accent-soft); overflow: hidden; }
 .pf-banner-img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .pf-main { padding: 0 1rem .8rem; }
+.list-head .pf-main { padding-top: .8rem; }
 .pf-avatar { width: 6.5rem; height: 6.5rem; margin-top: -3.4rem; border: 4px solid var(--panel); font-size: 2rem; }
 .pf-name { font-size: 1.25rem; margin-top: .3rem; }
 .pf-bio { white-space: pre-wrap; overflow-wrap: anywhere; margin: .5rem 0; }

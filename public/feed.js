@@ -1,4 +1,4 @@
-// Browsing: sources on the left (timelines, bookmarks), posts on the right. Routes live in #/..., so the browser's Back works.
+// Browsing: sources on the left (timelines, bookmarks, lists, followed accounts), posts on the right. Routes live in #/..., so the browser's Back works.
 
 const feedEl = $('#b-feed');
 const listEl = $('#b-list');
@@ -24,6 +24,7 @@ function parseRoute(hash) {
         return { kind, id: a };
     }
     if (kind === 'search' && rest.length) return { kind, product: SEARCH_TABS.some(([k]) => k === a) ? a : 'latest', q: decodeURIComponent(rest.join('/')) };
+    if (kind === 'list' && a) return { kind, id: a };
     return null;
 }
 
@@ -48,6 +49,13 @@ async function fetchPage(st, cursor) {
     if (r.kind === 'retweets') return q(`/api/tweet/${r.id}/retweeters`);
     if (r.kind === 'quotes') return q(`/api/tweet/${r.id}/quotes`);
     if (r.kind === 'search') return q('/api/search', `q=${encodeURIComponent(r.q)}&product=${r.product}`);
+    if (r.kind === 'list') {
+        if (!st.list) {
+            st.list = await api('GET', `/api/list/${r.id}`);
+            renderHead();
+        }
+        return q(`/api/list/${r.id}/timeline`);
+    }
     throw new Error('不認得的頁面');
 }
 
@@ -170,6 +178,12 @@ function renderHead() {
         xUrl = `https://x.com/search?q=${encodeURIComponent(r.q)}&f=live`;
         tabs = SEARCH_TABS.map(([k, v]) => [`#/search/${k}/${encodeURIComponent(r.q)}`, v]);
         cur = `#/search/${r.product}/${encodeURIComponent(r.q)}`;
+    } else if (r.kind === 'list') {
+        const l = st.list;
+        title = l ? l.name : '列表';
+        sub = l ? `${fmtNum(l.members)} 位成員` : '載入中…';
+        avatar = `<span class="avatar big icon-avatar">${ico('list')}</span>`;
+        xUrl = `https://x.com/i/lists/${r.id}`;
     } else if (r.kind === 'retweets' || r.kind === 'quotes') {
         title = r.kind === 'retweets' ? '轉推名單' : '引用推文';
         sub = '回到推文按左上返回';
@@ -222,6 +236,7 @@ function rerenderFeed() {
     state.media = [];
     const top = [];
     if (state.route.kind === 'user' && state.profile) top.push(renderProfile(state.profile));
+    if (state.route.kind === 'list' && state.list) top.push(renderListHead(state.list));
     $('#b-top').innerHTML = top.join('');
     listEl.innerHTML = tweetsHtml(state.tweets, state.tweets) + state.users.map(renderUserRow).join('');
     renderFoot();
@@ -230,6 +245,7 @@ function rerenderFeed() {
 
 function appendRender(tweets, users) {
     if (state.route.kind === 'user' && state.profile && !$('#b-top').innerHTML) $('#b-top').innerHTML = renderProfile(state.profile);
+    if (state.route.kind === 'list' && state.list && !$('#b-top').innerHTML) $('#b-top').innerHTML = renderListHead(state.list);
     // Thread lines depend on neighbours, so re-rendering everything is simpler
     if (state.route.kind === 'tweet') {
         const keep = feedEl.scrollTop;
@@ -368,12 +384,67 @@ document.addEventListener('keydown', (e) => {
     e.preventDefault();
 });
 
+// ---- Sidebar: lists, followed accounts ----
+let follows = [];
+let followCursor = null;
+let followDone = false;
+let followLoading = false;
+
 function highlightSide(hash) {
     document.querySelectorAll('#b-side li[data-route]').forEach((li) => {
         const r = li.dataset.route;
         const meHash = me ? `#/user/${me.screen_name}` : null;
         li.classList.toggle('active', hash === r || (hash || '').startsWith(`${r}/`) || (r === '#/me' && meHash && (hash === meHash || (hash || '').startsWith(`${meHash}/`))));
     });
+}
+
+function renderFollows() {
+    const q = $('#b-q').value.trim().toLowerCase().replace(/^@/, '');
+    const list = q ? follows.filter((u) => u.name.toLowerCase().includes(q) || u.screen_name.toLowerCase().includes(q)) : follows;
+    $('#b-follow').innerHTML = list.map((u) => `<li data-route="#/user/${esc(u.screen_name)}">
+        ${avatarHtml(u)}
+        <div class="c-body"><div class="c-title">${esc(u.name)}${verifiedIcon(u)}${lockIcon(u)}</div><div class="muted small-text">@${esc(u.screen_name)}</div></div>
+    </li>`).join('') || (followLoading ? '' : '<li class="muted empty-li">沒有符合的帳號</li>');
+    $('#b-follow-count').textContent = follows.length ? `${follows.length}${followDone ? '' : '+'}` : '';
+    $('#b-follow-more').classList.toggle('hidden', followDone || followLoading || !follows.length);
+    highlightSide(location.hash);
+}
+
+async function loadFollows(reset = false) {
+    if (followLoading) return;
+    if (reset) {
+        follows = [];
+        followCursor = null;
+        followDone = false;
+    }
+    if (followDone) return;
+    followLoading = true;
+    if (!follows.length) $('#b-follow').innerHTML = Array.from({ length: 6 }, () => '<li class="skeleton"><span class="avatar sk"></span><div class="c-body"><div class="sk" style="height:.9rem;width:60%"></div></div></li>').join('');
+    try {
+        const r = await api('GET', `/api/following${followCursor ? `?cursor=${encodeURIComponent(followCursor)}` : ''}`);
+        const seen = new Set(follows.map((u) => u.id));
+        const fresh = r.users.filter((u) => !seen.has(u.id));
+        follows.push(...fresh);
+        if (!r.cursor || r.cursor === followCursor || !fresh.length) followDone = true;
+        followCursor = r.cursor;
+    } catch (e) {
+        followDone = true;
+        $('#b-follow').innerHTML = `<li class="muted empty-li">${esc(e.message)}</li>`;
+        followLoading = false;
+        return;
+    }
+    followLoading = false;
+    renderFollows();
+}
+
+async function loadLists() {
+    try {
+        const lists = await api('GET', '/api/lists');
+        $('#b-lists').innerHTML = lists.map((l) => `<li data-route="#/list/${esc(l.id)}"><span class="side-icon">${ico('list')}</span><div class="c-body"><div class="c-title">${esc(l.name)}${l.private ? lockIcon({ protected: true }) : ''}</div><div class="muted small-text">${fmtNum(l.members)} 位成員</div></div></li>`).join('') || '<li class="muted empty-li">沒有列表</li>';
+        highlightSide(location.hash);
+    } catch (e) {
+        $('#b-lists').innerHTML = `<li class="muted empty-li">${esc(e.message)}</li>`;
+    }
 }
 
 $('#b-side').addEventListener('click', (e) => {
@@ -389,6 +460,14 @@ $('#b-side').addEventListener('click', (e) => {
     pendingFromSide = li.dataset.route;
     location.hash = li.dataset.route;
 });
+$('#b-side').addEventListener('scroll', () => {
+    const s = $('#b-side');
+    if (s.scrollTop + s.clientHeight > s.scrollHeight - 300 && !followDone && follows.length) loadFollows();
+});
+$('#b-follow-more').addEventListener('click', () => loadFollows());
+$('#b-follow-refresh').addEventListener('click', () => loadFollows(true));
+$('#b-lists-refresh').addEventListener('click', () => loadLists());
+$('#b-q').addEventListener('input', renderFollows);
 $('#b-q').addEventListener('keydown', (e) => {
     if (e.key !== 'Enter') return;
     const v = $('#b-q').value.trim();
@@ -419,12 +498,14 @@ window.addEventListener('hashchange', () => {
     openRoute(location.hash);
 });
 
-// After login or an account switch: reload the timeline with the new account
+// After login or an account switch: reload the sidebar and timeline with the new account
 function onLogin(switched = false) {
     me = authState && authState.user;
     // Pages loaded earlier belong to another account (or failed before login): drop them all and refetch
     states.clear();
     state = null;
+    loadLists();
+    loadFollows(true);
     const target = '#/home/following';
     if (switched || !location.hash || location.hash === '#') {
         if (location.hash === target) openRoute(target);

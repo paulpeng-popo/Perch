@@ -179,3 +179,13 @@ function renderProfile(p) {
         </div>
     </div>`;
 }
+
+function renderListHead(l) {
+    return `<div class="profile list-head">
+        <div class="pf-main">
+            <div class="pf-name"><b>${esc(l.name)}</b>${l.private ? lockIcon({ protected: true }) : ''}</div>
+            ${l.owner ? `<div class="muted">由 <a href="#/user/${esc(l.owner.screen_name)}">@${esc(l.owner.screen_name)}</a> 建立・${fmtNum(l.members)} 位成員</div>` : ''}
+            ${l.description ? `<div class="pf-bio">${esc(l.description)}</div>` : ''}
+        </div>
+    </div>`;
+}

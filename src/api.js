@@ -96,4 +96,28 @@ async function bookmarks(cursor) {
     return parse.timeline(await x.gql('Bookmarks', withCursor({ count: PAGE, includePromotedContent: true }, cursor)));
 }
 
-module.exports = { viewer, resetViewer, userByName, home, userTimeline, thread, retweeters, quotes, search, bookmarks };
+async function following(cursor) {
+    const me = await viewer();
+    const d = await x.gql('Following', withCursor({ userId: me.id, count: 100, includePromotedContent: false, withGrokTranslatedBio: false }, cursor));
+    return parse.timeline(d);
+}
+
+async function lists() {
+    const d = await x.gql('ListsManagementPageTimeline', { count: 100 });
+    const t = parse.timeline(d);
+    // The same list can appear under both "pinned" and "your lists"
+    const seen = new Set();
+    return t.lists.filter((l) => l.id && !seen.has(l.id) && seen.add(l.id));
+}
+
+async function listInfo(id) {
+    const d = await x.gql('ListByRestId', { listId: String(id) });
+    const l = d.list || {};
+    return { id: l.id_str || String(id), name: l.name || '', description: l.description || '', members: l.member_count || 0, private: l.mode === 'Private', owner: parse.user(l.user_results) };
+}
+
+async function listTimeline(id, cursor) {
+    return parse.timeline(await x.gql('ListLatestTweetsTimeline', withCursor({ listId: String(id), count: PAGE }, cursor)));
+}
+
+module.exports = { viewer, resetViewer, userByName, home, userTimeline, thread, retweeters, quotes, search, bookmarks, following, lists, listInfo, listTimeline };

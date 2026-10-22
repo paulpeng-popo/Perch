@@ -132,6 +132,10 @@ app.get('/api/search', wrap((req) => {
     return api.search(req.query.q, req.query.product, cur(req));
 }));
 app.get('/api/bookmarks', wrap((req) => api.bookmarks(cur(req))));
+app.get('/api/following', wrap((req) => api.following(cur(req))));
+app.get('/api/lists', wrap(() => api.lists()));
+app.get('/api/list/:id', wrap((req) => api.listInfo(req.params.id)));
+app.get('/api/list/:id/timeline', wrap((req) => api.listTimeline(req.params.id, cur(req))));
 
 function listen(port) {
     return new Promise((resolve, reject) => {
