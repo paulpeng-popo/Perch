@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Images and videos load straight from twimg.com without a referrer -->
+    <meta name="referrer" content="no-referrer">
+    <title>Perch</title>
+    <link rel="icon" href="icon.png">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="x.css">
+</head>
+<body>
+<header>
+    <h1><img class="logo-img" src="icon.png" alt=""> <span class="app-name">Perch</span></h1>
+    <nav>
+        <button data-tab="settings" data-icon="settings" class="active" title="設定">設定</button>
+    </nav>
+    <div class="header-tools">
+        <button id="font-down" class="icon text-icon" title="字小一點（Ctrl+-）">A−</button>
+        <button id="font-up" class="icon text-icon" title="字大一點（Ctrl+=）">A＋</button>
+        <button id="theme-toggle" class="icon" title="切換深淺色"></button>
+    </div>
+</header>
+
+<main>
+    <!-- Settings -->
+    <section id="tab-settings" class="tab">
+        <div class="card">
+            <h2>介面</h2>
+            <label class="check"><input type="checkbox" id="set-blur"> 縮圖預設模糊（滑過或點擊才顯示）</label>
+            <label class="check"><input type="checkbox" id="set-blur-sensitive" checked> 標記為敏感的媒體先模糊</label>
+            <label class="check"><input type="checkbox" id="set-hide-rt"> 時間軸隱藏轉推</label>
+            <label class="check"><input type="checkbox" id="set-hide-replies"> 時間軸隱藏回覆</label>
+            <p class="muted">字體大小、深淺色在右上角切換。這些偏好只存在這個瀏覽器。</p>
+        </div>
+    </section>
+</main>
+
+<div id="toast"></div>
+<script src="icons.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

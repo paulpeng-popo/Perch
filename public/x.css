@@ -1,0 +1,7 @@
+/* =====================================================================
+   Perch (style.css holds the shared base styles; this file is Perch-specific)
+   ===================================================================== */
+.small-text { font-size: .82rem; }
+.clamp { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+
+.logo-img { width: 1.9rem; height: 1.9rem; border-radius: 22%; display: block; }
