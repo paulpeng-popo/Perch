@@ -1,0 +1,96 @@
+{
+    "name": "perch",
+    "productName": "Perch",
+    "version": "0.1.0",
+    "private": true,
+    "description": "Perch: A read-only local X (Twitter) browser",
+    "author": "paulpeng-popo",
+    "license": "MIT",
+    "repository": "github:paulpeng-popo/Perch",
+    "main": "electron/main.js",
+    "scripts": {
+        "start": "node --no-warnings=ExperimentalWarning src/server.js --open",
+        "serve": "node --no-warnings=ExperimentalWarning src/server.js",
+        "background": "node src/background.js",
+        "stop": "node src/background.js stop",
+        "app": "electron .",
+        "dist": "electron-builder",
+        "dist:win": "electron-builder --win",
+        "dist:mac": "electron-builder --mac",
+        "dist:linux": "electron-builder --linux"
+    },
+    "engines": {
+        "node": ">=20"
+    },
+    "dependencies": {
+        "express": "4.21.2",
+        "linkedom": "0.18.13",
+        "x-client-transaction-id": "0.3.2"
+    },
+    "devDependencies": {
+        "electron": "44.5.1",
+        "electron-builder": "26.15.3"
+    },
+    "build": {
+        "appId": "io.github.paulpeng-popo.perch",
+        "productName": "Perch",
+        "artifactName": "Perch-${version}-${os}-${arch}.${ext}",
+        "directories": {
+            "output": "dist",
+            "buildResources": "build"
+        },
+        "files": [
+            "electron/**",
+            "src/**",
+            "public/**",
+            "build/icon.png",
+            "package.json"
+        ],
+        "asarUnpack": [
+            "public/**"
+        ],
+        "npmRebuild": false,
+        "win": {
+            "target": [
+                {
+                    "target": "zip",
+                    "arch": [
+                        "x64"
+                    ]
+                }
+            ],
+            "icon": "build/icon.png"
+        },
+        "mac": {
+            "target": [
+                {
+                    "target": "dmg",
+                    "arch": [
+                        "arm64",
+                        "x64"
+                    ]
+                }
+            ],
+            "category": "public.app-category.social-networking",
+            "icon": "build/icon.png"
+        },
+        "linux": {
+            "target": [
+                {
+                    "target": "AppImage",
+                    "arch": [
+                        "x64"
+                    ]
+                },
+                {
+                    "target": "tar.gz",
+                    "arch": [
+                        "x64"
+                    ]
+                }
+            ],
+            "category": "Network",
+            "icon": "build/icon.png"
+        }
+    }
+}

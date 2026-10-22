@@ -1,0 +1,6 @@
+node_modules/
+# Account cookies, settings, caches and logs live in data: never commit it
+data/
+.claude/
+# Build output
+dist/

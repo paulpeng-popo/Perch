@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Images and videos load straight from twimg.com without a referrer -->
+    <meta name="referrer" content="no-referrer">
+    <title>Perch</title>
+    <link rel="icon" href="icon.png">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="x.css">
+</head>
+<body>
+<header>
+    <h1><img class="logo-img" src="icon.png" alt=""> <span class="app-name">Perch</span></h1>
+    <nav>
+        <button data-tab="browse" data-icon="home" class="active" title="瀏覽">瀏覽</button>
+        <button data-tab="log" data-icon="log" title="日誌">日誌</button>
+        <button data-tab="settings" data-icon="settings" title="設定">設定</button>
+    </nav>
+    <div class="header-tools">
+        <button id="font-down" class="icon text-icon" title="字小一點（Ctrl+-）">A−</button>
+        <button id="font-up" class="icon text-icon" title="字大一點（Ctrl+=）">A＋</button>
+        <button id="theme-toggle" class="icon" title="切換深淺色"></button>
+        <button id="auth-badge" class="badge acct-btn" title="切換帳號">…</button>
+    </div>
+    <div id="acct-menu" class="ctx-menu acct-menu hidden"></div>
+</header>
+
+<div id="update-banner" class="top-banner hidden">
+    <span id="update-text"></span>
+    <a id="update-link" class="small-btn primary" target="_blank" rel="noopener noreferrer">下載新版</a>
+    <button id="update-later" class="small">這版不再提醒</button>
+</div>
+<div id="port-warn" class="top-banner warn hidden"></div>
+
+<section id="now" class="hidden">
+    <div class="now-text"></div>
+    <div class="bar"><div></div></div>
+</section>
+
+<main>
+    <!-- Browse -->
+    <section id="tab-browse" class="tab">
+        <div class="browse">
+            <aside class="chats">
+                <div class="chats-tools">
+                    <input id="b-q" type="search" placeholder="篩選帳號・Enter 搜尋推文・@帳號 直接開">
+                </div>
+                <div id="b-side" class="side-scroll">
+                    <ul id="b-sources" class="side-list">
+                        <li data-route="#/home/following"><span class="side-icon" data-icon="home"></span><span class="c-title">追蹤中（最新）</span></li>
+                        <li data-route="#/home/foryou"><span class="side-icon" data-icon="sparkle"></span><span class="c-title">為你推薦</span></li>
+                        <li data-route="#/bookmarks"><span class="side-icon" data-icon="bookmark"></span><span class="c-title">書籤</span></li>
+                        <li data-route="#/me"><span class="side-icon" data-icon="user"></span><span class="c-title">我的個人檔案</span></li>
+                    </ul>
+                    <div class="side-head"><span>多人時間軸</span><button id="b-groups-add" class="icon small-icon" data-icon="plus" title="新增（在某人的個人檔案上按，會先帶入這個人）"></button></div>
+                    <ul id="b-groups" class="side-list"></ul>
+                    <div class="side-head"><span>列表</span><button id="b-lists-refresh" class="icon small-icon" data-icon="refresh" title="重新整理列表"></button></div>
+                    <ul id="b-lists" class="side-list"><li class="muted empty-li">登入後顯示</li></ul>
+                    <div class="side-head"><span>追蹤中的帳號 <span id="b-follow-count" class="muted"></span></span><button id="b-follow-refresh" class="icon small-icon" data-icon="refresh" title="重新整理"></button></div>
+                    <ul id="b-follow" class="side-list"><li class="muted empty-li">登入後顯示</li></ul>
+                    <div class="side-more"><button id="b-follow-more" class="small hidden">載入更多</button></div>
+                </div>
+            </aside>
+            <section class="chat">
+                <div id="b-empty" class="chat-empty">
+                    <div class="empty-icon" data-icon="x"></div>
+                    <h2>選一個來源開始瀏覽</h2>
+                    <ul class="tips">
+                        <li>只讀不寫：不會按讚、轉推、追蹤，也不會把通知標成已讀</li>
+                        <li>左上搜尋框按 <kbd>Enter</kbd> 搜尋推文，輸入 <kbd>@帳號</kbd> 直接開個人檔案</li>
+                        <li>點圖片後用 <kbd>←</kbd> <kbd>→</kbd> 切換、<kbd>空白鍵</kbd> 幻燈片、<kbd>D</kbd> 下載</li>
+                        <li>右上 <span data-icon="grid"></span> 切換媒體牆，一次看整個時間軸的圖片和影片</li>
+                    </ul>
+                </div>
+                <div id="b-view" class="hidden">
+                    <div class="chat-head">
+                        <button id="b-menu" class="icon menu-btn" data-icon="topics" title="回到列表"></button>
+                        <button id="b-back" class="back-btn" data-icon="back" title="返回（Alt+←）"></button>
+                        <span id="b-avatar" class="avatar big"></span>
+                        <div class="chat-meta">
+                            <b id="b-title"></b>
+                            <div id="b-sub" class="muted"></div>
+                        </div>
+                        <div class="head-tools">
+                            <button id="b-select" class="icon" data-icon="select" title="多選下載（S）"></button>
+                            <button id="b-rss" class="icon hidden" data-icon="rss" title="複製這個頁面的 RSS 網址"></button>
+                            <button id="b-wall" class="icon" data-icon="grid" title="媒體牆（G）"></button>
+                            <button id="b-reload" class="icon" data-icon="refresh" title="重新整理（R）"></button>
+                            <a id="b-open-x" class="icon icon-link" data-icon="external" title="在 x.com 開啟" target="_blank" rel="noopener noreferrer"></a>
+                        </div>
+                    </div>
+                    <div id="b-tabs" class="feed-tabs hidden"></div>
+                    <div id="b-selbar" class="selbar hidden">
+                        <span>已選 <b id="b-sel-count">0</b> 個</span>
+                        <button id="b-sel-all" class="small">全選已載入的媒體</button>
+                        <button id="b-sel-new" class="small" title="只選還沒下載過的">全選未下載的</button>
+                        <button id="b-sel-dl" class="small primary">下載選取</button>
+                        <span class="spacer"></span>
+                        <button id="b-sel-cancel" class="small">取消</button>
+                    </div>
+                    <div id="b-feed" class="messages">
+                        <div id="b-top"></div>
+                        <div id="b-list"></div>
+                        <div id="b-foot" class="feed-foot"></div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </section>
+
+    <!-- Log -->
+    <section id="tab-log" class="tab hidden">
+        <pre id="log"></pre>
+    </section>
+
+    <!-- Settings -->
+    <section id="tab-settings" class="tab hidden">
+        <div class="card">
+            <h2>X 帳號</h2>
+            <p id="auth-state" class="muted"></p>
+            <ul id="acct-list" class="acct-list"></ul>
+            <div class="actions">
+                <button id="btn-check-auth">重新檢查目前的帳號</button>
+            </div>
+        </div>
+
+        <div class="card" id="acct-add">
+            <h2>新增帳號</h2>
+            <div class="app-only hidden">
+                <p class="muted">開一個 x.com 登入視窗，你自己登入後會自動加進來。登入視窗用完就丟，不會留在電腦上，也不用在 x.com 按登出（登出會讓這組登入失效）。</p>
+                <button id="btn-login-x" class="primary">登入 X</button>
+                <p id="login-x-state" class="muted"></p>
+            </div>
+            <details id="manual-cookie" class="manual-cookie">
+                <summary>手動貼 cookie</summary>
+                <p class="muted">在瀏覽器登入要加的帳號 → 按 <kbd>F12</kbd> →「應用程式／Application」→ Cookie → <code>https://x.com</code>，複製 <code>auth_token</code> 和 <code>ct0</code> 的值貼到下面。也可以把整串 Cookie 標頭直接貼進任一格。</p>
+                <p class="muted">要加第二個帳號時，在 x.com 先登出原本的帳號再登入另一個（或用無痕視窗），才拿得到另一組 cookie。<b>不要在 x.com 按「登出」來切換已經加進來的帳號</b>：登出會讓那組 cookie 失效。用無痕視窗登入、拿完 cookie 直接關掉視窗最安全。</p>
+                <label>auth_token <input id="set-auth" type="password" autocomplete="off" placeholder="貼上 auth_token"></label>
+                <label>ct0 <input id="set-ct0" type="password" autocomplete="off" placeholder="貼上 ct0"></label>
+                <button id="btn-add-acct" class="primary">新增並切換過去</button>
+            </details>
+            <p class="warn-box">基於網頁 API 實作，可能違反 X 的使用條款，瀏覽太兇可能被限流或鎖帳號，後果請自行負責。</p>
+        </div>
+
+        <div class="card">
+            <h2>下載</h2>
+            <label>下載資料夾 <input id="set-root"></label>
+            <p class="muted">存成 <code>資料夾/帳號/推文ID_第幾張.副檔名</code>，已存在的會略過。</p>
+            <div class="actions">
+                <button id="btn-save-root" class="primary">儲存</button>
+                <button id="btn-pick-root" class="app-only hidden">選擇資料夾…</button>
+                <button id="btn-open-root" class="app-only hidden">打開下載資料夾</button>
+            </div>
+        </div>
+
+        <div class="card app-only hidden">
+            <h2>App 資料</h2>
+            <p class="muted">帳號、設定、內建瀏覽器的快取都只放在這個資料夾。不用 Perch 時把整個 app 資料夾刪掉，電腦上就不會留下任何東西（下載的圖片影片除外）。</p>
+            <p><code id="app-data-dir"></code></p>
+            <button id="btn-open-data">打開資料夾</button>
+        </div>
+
+        <div class="card">
+            <h2>X 前端解析</h2>
+            <p class="muted">X 改版時 API 的編號會變，伺服器會自動重新解析；如果某個頁面一直出錯，可以手動重來一次。</p>
+            <p id="defs-state"></p>
+            <button id="btn-rediscover">重新解析 X 前端</button>
+            <details class="rate-box">
+                <summary>各 API 剩餘次數</summary>
+                <div id="rate-list" class="muted"></div>
+            </details>
+        </div>
+
+        <div class="card">
+            <h2>關於 Perch</h2>
+            <p>目前版本：<b id="about-version">-</b></p>
+            <p id="about-update" class="muted"></p>
+            <button id="btn-check-update">檢查更新</button>
+        </div>
+
+        <div class="card">
+            <h2>介面</h2>
+            <label class="check"><input type="checkbox" id="set-blur"> 縮圖預設模糊（滑過或點擊才顯示）</label>
+            <label class="check"><input type="checkbox" id="set-blur-sensitive" checked> 標記為敏感的媒體先模糊</label>
+            <label class="check"><input type="checkbox" id="set-hide-rt"> 時間軸隱藏轉推</label>
+            <label class="check"><input type="checkbox" id="set-hide-replies"> 時間軸隱藏回覆</label>
+            <p class="muted">字體大小、深淺色在右上角切換。這些偏好只存在這個瀏覽器。</p>
+        </div>
+    </section>
+</main>
+
+<!-- Generic prompt dialog -->
+<dialog id="ask-dialog">
+    <h2 id="ask-title"></h2>
+    <div id="ask-body"></div>
+    <div class="actions" id="ask-buttons"></div>
+</dialog>
+
+<!-- Media viewer -->
+<dialog id="viewer">
+    <div class="viewer-tools">
+        <span id="viewer-count" class="v-count"></span>
+        <span id="viewer-name" class="v-name"></span>
+        <span class="spacer"></span>
+        <button id="viewer-zoom" class="v-btn" data-icon="zoom" title="縮放（Z）"></button>
+        <button id="viewer-play" class="v-btn" data-icon="play" title="幻燈片（空白鍵）"></button>
+        <button id="viewer-goto" class="v-btn" data-icon="goto" title="開啟這則推文"></button>
+        <a id="viewer-save" class="v-btn" data-icon="external" title="在新分頁開原檔" target="_blank" rel="noopener noreferrer"></a>
+        <button id="viewer-download" class="v-btn" data-icon="download" title="下載到資料夾（D）"></button>
+        <button id="viewer-close" class="v-btn" data-icon="close" title="關閉（Esc）"></button>
+    </div>
+    <button id="viewer-prev" class="v-nav prev" data-icon="left" title="上一張（←）"></button>
+    <div id="viewer-body"></div>
+    <button id="viewer-next" class="v-nav next" data-icon="right" title="下一張（→）"></button>
+    <div id="viewer-caption" class="v-caption hidden"></div>
+    <div id="viewer-strip" class="v-strip"></div>
+</dialog>
+
+<div id="toast"></div>
+<script src="icons.js"></script>
+<script src="app.js"></script>
+<script src="render.js"></script>
+<script src="feed.js"></script>
+<script src="viewer.js"></script>
+</body>
+</html>
