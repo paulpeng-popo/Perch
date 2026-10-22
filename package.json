@@ -1,0 +1,26 @@
+{
+    "name": "perch",
+    "productName": "Perch",
+    "version": "0.1.0",
+    "private": true,
+    "description": "Perch: A read-only local X (Twitter) browser",
+    "author": "paulpeng-popo",
+    "license": "MIT",
+    "repository": "github:paulpeng-popo/Perch",
+    "scripts": {
+        "start": "node --no-warnings=ExperimentalWarning src/server.js --open",
+        "serve": "node --no-warnings=ExperimentalWarning src/server.js"
+    },
+    "engines": {
+        "node": ">=20"
+    },
+    "dependencies": {
+        "express": "4.21.2",
+        "linkedom": "0.18.13",
+        "x-client-transaction-id": "0.3.2"
+    },
+    "devDependencies": {
+        "electron": "44.5.1",
+        "electron-builder": "26.15.3"
+    }
+}
