@@ -80,6 +80,17 @@ async function quotes(id, cursor) {
     return search(`quoted_tweet_id:${String(id).replace(/\D/g, '')}`, 'latest', cursor);
 }
 
+// Several people at once: search (from:a OR from:b …), newest first
+const cleanNames = (users) => [...new Set(String(users || '').split(/[\s,，]+/).map((u) => u.replace(/^@/, '')).filter((u) => /^\w{1,15}$/.test(u)))];
+async function multi(users, media, cursor) {
+    const names = cleanNames(users);
+    // code: 'USER' = bad input, the server needn't print a stack trace
+    if (!names.length) throw Object.assign(new Error('請至少輸入一個帳號'), { code: 'USER' });
+    if (names.length > 25) throw Object.assign(new Error('一次最多 25 個帳號（X 的搜尋字數有上限）'), { code: 'USER' });
+    const q = `(${names.map((n) => `from:${n}`).join(' OR ')})${media ? ' filter:media' : ''} include:nativeretweets`;
+    return search(q, 'latest', cursor);
+}
+
 const SEARCH_PRODUCTS = { latest: 'Latest', top: 'Top', media: 'Media', people: 'People' };
 async function search(q, product, cursor) {
     const d = await x.gql('SearchTimeline', withCursor({
@@ -120,4 +131,4 @@ async function listTimeline(id, cursor) {
     return parse.timeline(await x.gql('ListLatestTweetsTimeline', withCursor({ listId: String(id), count: PAGE }, cursor)));
 }
 
-module.exports = { viewer, resetViewer, userByName, home, userTimeline, thread, retweeters, quotes, search, bookmarks, following, lists, listInfo, listTimeline };
+module.exports = { viewer, resetViewer, userByName, home, userTimeline, thread, retweeters, quotes, multi, cleanNames, search, bookmarks, following, lists, listInfo, listTimeline };

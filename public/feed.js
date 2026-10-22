@@ -23,6 +23,10 @@ function parseRoute(hash) {
         if (rest[0] === 'quotes') return { kind: 'quotes', id: a };
         return { kind, id: a };
     }
+    if (kind === 'multi' && a) {
+        const users = decodeURIComponent(a).split(',').filter((u) => /^\w{1,15}$/.test(u));
+        if (users.length) return { kind, users, media: rest[0] === 'media' };
+    }
     if (kind === 'search' && rest.length) return { kind, product: SEARCH_TABS.some(([k]) => k === a) ? a : 'latest', q: decodeURIComponent(rest.join('/')) };
     if (kind === 'list' && a) return { kind, id: a };
     return null;
@@ -48,6 +52,7 @@ async function fetchPage(st, cursor) {
     if (r.kind === 'tweet') return q(`/api/tweet/${r.id}`);
     if (r.kind === 'retweets') return q(`/api/tweet/${r.id}/retweeters`);
     if (r.kind === 'quotes') return q(`/api/tweet/${r.id}/quotes`);
+    if (r.kind === 'multi') return q('/api/multi', `users=${encodeURIComponent(r.users.join(','))}${r.media ? '&media=1' : ''}`);
     if (r.kind === 'search') return q('/api/search', `q=${encodeURIComponent(r.q)}&product=${r.product}`);
     if (r.kind === 'list') {
         if (!st.list) {
@@ -189,6 +194,15 @@ function renderHead() {
         sub = '回到推文按左上返回';
         avatar = `<span class="avatar big icon-avatar">${ico(r.kind === 'retweets' ? 'retweet' : 'quote')}</span>`;
         xUrl = `https://x.com/i/status/${r.id}/${r.kind}`;
+    } else if (r.kind === 'multi') {
+        const g = groupFor(r.users);
+        title = g ? g.name : r.users.map((u) => `@${u}`).join('、');
+        sub = `多人時間軸・${r.users.length} 個帳號`;
+        avatar = `<span class="avatar big icon-avatar">${ico('topics')}</span>`;
+        xUrl = `https://x.com/search?q=${encodeURIComponent(r.users.map((u) => `from:${u}`).join(' OR '))}&f=live`;
+        const base = `#/multi/${r.users.join(',')}`;
+        tabs = [[base, '全部'], [`${base}/media`, '媒體']];
+        cur = r.media ? `${base}/media` : base;
     }
     $('#b-title').textContent = title;
     $('#b-sub').textContent = sub;
@@ -207,7 +221,7 @@ function register(m, t, i) {
 
 function visible(t) {
     const r = state.route;
-    if (r.kind === 'tweet' || r.kind === 'search' || r.kind === 'quotes') return true;
+    if (r.kind === 'tweet' || r.kind === 'search' || r.kind === 'quotes' || r.kind === 'multi') return true;
     if (prefs.hideRt && t.retweeted_by && !(r.kind === 'user' && r.tab !== 'tweets')) return false;
     if (prefs.hideReplies && t.reply_to && r.kind !== 'user') return false;
     return true;
@@ -447,7 +461,69 @@ async function loadLists() {
     }
 }
 
+// ---- Custom groups for multi-user timelines (stored on the server in data/settings.json) ----
+let groups = [];
+const sameUsers = (a, b) => a.length === b.length && a.every((u) => b.some((v) => v.toLowerCase() === u.toLowerCase()));
+const groupFor = (users) => groups.find((g) => sameUsers(g.users, users)) || null;
+
+function renderGroups() {
+    $('#b-groups').innerHTML = groups.map((g, i) => `<li data-route="#/multi/${esc(g.users.join(','))}">
+        <span class="side-icon">${ico('topics')}</span>
+        <div class="c-body"><div class="c-title">${esc(g.name)}</div><div class="muted small-text">${g.users.length} 個帳號</div></div>
+        <button class="icon side-act" data-group-edit="${i}" title="編輯">${ico('edit')}</button>
+        <button class="icon side-act" data-group-del="${i}" title="刪除">${ico('trash')}</button>
+    </li>`).join('') || '<li class="muted empty-li">按 ＋ 建立，把幾個帳號的推文合在一起看</li>';
+    highlightSide(location.hash);
+}
+async function loadGroups() {
+    try {
+        groups = await api('GET', '/api/groups');
+    } catch {
+        groups = [];
+    }
+    renderGroups();
+}
+async function saveGroups() {
+    groups = await api('PUT', '/api/groups', groups);
+    renderGroups();
+    if (state && state.route.kind === 'multi') renderHead();
+}
+// Add or edit a group; preset is a list of handles to pre-fill
+async function editGroup(idx = -1, preset = []) {
+    const g = idx >= 0 ? groups[idx] : { name: '', users: preset };
+    const html = `<label>名稱 <input id="grp-name" value="${esc(g.name)}" placeholder="例如：繪師"></label>
+        <label>帳號（空白、逗號或換行分隔，最多 25 個） <textarea id="grp-users" rows="5" placeholder="@user1 @user2">${esc(g.users.map((u) => `@${u}`).join('\n'))}</textarea></label>`;
+    const ok = await ask(idx >= 0 ? '編輯群組' : '新增多人時間軸', html, [{ label: '取消', value: false }, { label: '儲存', value: true, cls: 'primary' }]);
+    if (!ok) return;
+    const name = $('#grp-name').value.trim();
+    const users = [...new Set($('#grp-users').value.split(/[\s,，]+/).map((u) => u.replace(/^@/, '')).filter((u) => /^\w{1,15}$/.test(u)))];
+    if (!users.length) return toast('沒有有效的帳號');
+    if (users.length > 25) return toast('最多 25 個帳號');
+    const item = { name: name || users.map((u) => `@${u}`).join('、').slice(0, 50), users };
+    if (idx >= 0) groups[idx] = item;
+    else groups.push(item);
+    await saveGroups();
+    location.hash = `#/multi/${users.join(',')}`;
+}
+$('#b-groups-add').addEventListener('click', guard(() => {
+    // Pressing + on someone's profile pre-fills that person
+    const preset = state && state.route.kind === 'user' && state.profile ? [state.profile.screen_name] : (state && state.route.kind === 'multi' ? state.route.users : []);
+    return editGroup(-1, preset);
+}));
+$('#b-groups').addEventListener('click', guard(async (e) => {
+    const ed = e.target.closest('[data-group-edit]');
+    const del = e.target.closest('[data-group-del]');
+    if (!ed && !del) return;
+    e.stopPropagation();
+    if (ed) return editGroup(Number(ed.dataset.groupEdit));
+    const g = groups[Number(del.dataset.groupDel)];
+    if (!await confirmBox(`刪除群組「${g.name}」？`, { ok: '刪除', danger: true })) return;
+    groups.splice(Number(del.dataset.groupDel), 1);
+    await saveGroups();
+}));
+
 $('#b-side').addEventListener('click', (e) => {
+    if (e.target.closest('.side-act')) return;
     const li = e.target.closest('li[data-route]');
     if (!li) return;
     if (e.ctrlKey || e.metaKey) return window.open(li.dataset.route, '_blank');
@@ -514,6 +590,7 @@ function onLogin(switched = false) {
 }
 
 (function start() {
+    loadGroups();
     let tab = 'browse';
     try { tab = localStorage.getItem('tab') || 'browse'; } catch { /* private browsing */ }
     showTab(location.hash ? 'browse' : tab);

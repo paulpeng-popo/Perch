@@ -142,6 +142,14 @@
 .user-row:hover { background: var(--panel-2); }
 .user-bio { font-size: .9rem; margin-top: .2rem; }
 
+/* ---- Multi-user timeline groups ---- */
+.side-list li .side-act { min-width: 1.8rem; height: 1.8rem; display: none; flex: none; }
+.side-list li:hover .side-act { display: inline-flex; }
+.side-list li .side-act .ico { width: .95rem; height: .95rem; }
+.side-list li.active .side-act { color: inherit; }
+#ask-dialog label { display: block; margin-bottom: .7rem; }
+#ask-dialog textarea { width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: .35rem .6rem; resize: vertical; font: inherit; color: inherit; }
+
 /* ---- Repost / quote list links ---- */
 .tw-links { display: flex; gap: 1.2rem; padding: .45rem 0; margin-top: .3rem; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); font-size: .92rem; }
 .tw-links a { color: var(--muted); text-decoration: none; }

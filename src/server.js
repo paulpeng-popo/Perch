@@ -1,6 +1,7 @@
 const path = require('node:path');
 const { spawn } = require('node:child_process');
 const express = require('express');
+const { getSetting, setSetting } = require('./store');
 const { log, lines } = require('./log');
 const x = require('./x');
 const api = require('./api');
@@ -127,6 +128,18 @@ app.get('/api/user/:id/timeline', wrap((req) => api.userTimeline(req.params.id, 
 app.get('/api/tweet/:id', wrap((req) => api.thread(req.params.id, cur(req))));
 app.get('/api/tweet/:id/retweeters', wrap((req) => api.retweeters(req.params.id, cur(req))));
 app.get('/api/tweet/:id/quotes', wrap((req) => api.quotes(req.params.id, cur(req))));
+app.get('/api/multi', wrap((req) => api.multi(req.query.users, req.query.media === '1', cur(req))));
+
+// Custom groups (multi-user timelines): [{ name, users: [...] }]
+app.get('/api/groups', wrap(() => getSetting('groups', [])));
+app.put('/api/groups', wrap((req) => {
+    const list = (Array.isArray(req.body) ? req.body : [])
+        .map((g) => ({ name: String(g.name || '').trim().slice(0, 50), users: api.cleanNames((g.users || []).join(',')).slice(0, 25) }))
+        .filter((g) => g.name && g.users.length);
+    setSetting('groups', list);
+    return list;
+}));
+
 app.get('/api/search', wrap((req) => {
     if (!String(req.query.q || '').trim()) throw new Error('請輸入搜尋文字');
     return api.search(req.query.q, req.query.product, cur(req));
