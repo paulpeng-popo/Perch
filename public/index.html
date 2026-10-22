@@ -27,6 +27,12 @@
     <div id="acct-menu" class="ctx-menu acct-menu hidden"></div>
 </header>
 
+<div id="update-banner" class="top-banner hidden">
+    <span id="update-text"></span>
+    <a id="update-link" class="small-btn primary" target="_blank" rel="noopener noreferrer">下載新版</a>
+    <button id="update-later" class="small">這版不再提醒</button>
+</div>
+
 <section id="now" class="hidden">
     <div class="now-text"></div>
     <div class="bar"><div></div></div>
@@ -150,6 +156,13 @@
                 <summary>各 API 剩餘次數</summary>
                 <div id="rate-list" class="muted"></div>
             </details>
+        </div>
+
+        <div class="card">
+            <h2>關於 Perch</h2>
+            <p>目前版本：<b id="about-version">-</b></p>
+            <p id="about-update" class="muted"></p>
+            <button id="btn-check-update">檢查更新</button>
         </div>
 
         <div class="card">

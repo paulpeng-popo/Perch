@@ -185,6 +185,11 @@
 .art-embed { display: inline-flex; gap: .3rem; align-items: center; border: 1px solid var(--line); border-radius: 999px; padding: .2rem .8rem; margin-bottom: .8rem; text-decoration: none; }
 .art-embed .ico { width: 1rem; height: 1rem; }
 
+/* ---- Notice bars under the header (update, port) ---- */
+.top-banner { display: flex; gap: .7rem; align-items: center; flex-wrap: wrap; padding: .45rem 1rem; background: var(--accent-soft); border-bottom: 1px solid var(--line); font-size: .9rem; flex: none; }
+.top-banner #update-text { flex: 1; min-width: 12rem; }
+.small-btn { display: inline-flex; align-items: center; padding: .15rem .7rem; border-radius: 8px; font-size: .85rem; text-decoration: none; border: 1px solid var(--line); color: inherit; }
+.small-btn.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
 .logo-img { width: 1.9rem; height: 1.9rem; border-radius: 22%; display: block; }
 .manual-cookie { margin: .6rem 0; }
 .manual-cookie summary { cursor: pointer; color: var(--muted); margin-bottom: .5rem; }

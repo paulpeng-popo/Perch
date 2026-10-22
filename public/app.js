@@ -341,5 +341,42 @@ $('#btn-rediscover').addEventListener('click', guard(async () => {
     toast('已重新解析');
 }));
 
+// ---- Update check (GitHub Releases) ----
+// Check once after startup, then every 6 hours; the server caches too, so GitHub isn't hammered
+function renderUpdate(u) {
+    $('#about-version').textContent = u.current ? `v${u.current}` : '-';
+    let note;
+    if (u.error) note = `無法檢查更新：${u.error}`;
+    else if (u.newer) note = `有新版 v${u.latest}`;
+    else if (u.latest) note = '已經是最新版';
+    else note = u.note || '';
+    $('#about-update').textContent = note;
+    let dismissed = '';
+    try { dismissed = localStorage.getItem('dismissUpdate') || ''; } catch { /* private browsing */ }
+    const show = !!(u.newer && dismissed !== u.latest);
+    $('#update-banner').classList.toggle('hidden', !show);
+    if (show) {
+        $('#update-text').textContent = `Perch 有新版 v${u.latest}（你現在是 v${u.current}）。`;
+        $('#update-link').href = u.url;
+        $('#update-later').dataset.version = u.latest;
+    }
+}
+async function checkUpdate(force = false) {
+    try {
+        renderUpdate(await api('GET', `/api/update${force ? '?force=1' : ''}`));
+    } catch { /* a failed check shouldn't bother the user */ }
+}
+$('#update-later').addEventListener('click', (e) => {
+    try { localStorage.setItem('dismissUpdate', e.target.dataset.version || ''); } catch { /* private browsing */ }
+    $('#update-banner').classList.add('hidden');
+});
+$('#btn-check-update').addEventListener('click', guard(async () => {
+    $('#about-update').textContent = '檢查中…';
+    try { localStorage.removeItem('dismissUpdate'); } catch { /* private browsing */ }
+    await checkUpdate(true);
+}));
+setTimeout(() => checkUpdate(), 3000);
+setInterval(() => checkUpdate(), 6 * 60 * 60 * 1000);
+
 applyIcons();
 applyPrefs();

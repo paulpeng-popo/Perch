@@ -7,6 +7,7 @@ const x = require('./x');
 const api = require('./api');
 const accounts = require('./accounts');
 const rss = require('./rss');
+const update = require('./update');
 const downloader = require('./downloader');
 
 const DEFAULT_PORT = Number(process.env.PORT) || 8788;
@@ -72,6 +73,7 @@ async function checkAuth() {
 }
 
 app.get('/api/status', wrap(() => ({ auth: authState, accounts: accounts.publicList(), x: x.status(), ...downloader.snapshot(), log: lines.slice(-200) })));
+app.get('/api/update', wrap((req) => update.check(req.query.force === '1')));
 
 // Accept a whole pasted cookie string: pick out the one we need
 const pick = (s, k) => {
