@@ -6,6 +6,7 @@ const { log, lines } = require('./log');
 const x = require('./x');
 const api = require('./api');
 const accounts = require('./accounts');
+const rss = require('./rss');
 const downloader = require('./downloader');
 
 const DEFAULT_PORT = Number(process.env.PORT) || 8788;
@@ -87,6 +88,7 @@ async function addAccount(auth, ct0) {
     const acct = accounts.add(auth, tmp.ct0);
     accounts.update(acct.key, { user: brief(u), ok: true });
     accounts.activate(acct.key);
+    rss.clear();
     log('已新增 X 帳號並切換過去');
     await checkAuth();
     return { auth: authState, accounts: accounts.publicList() };
@@ -100,6 +102,7 @@ app.post('/api/accounts', wrap((req) => {
 
 app.post('/api/accounts/:key/activate', wrap(async (req) => {
     accounts.activate(req.params.key);
+    rss.clear();
     log('已切換 X 帳號');
     await checkAuth();
     return { auth: authState, accounts: accounts.publicList() };
@@ -150,6 +153,37 @@ app.put('/api/groups', wrap((req) => {
     return list;
 }));
 
+// ---- RSS (for local RSS readers; fetched with the active account) ----
+const sendRss = (key, load) => (req, res) => {
+    rss.serve(`${accounts.active() ? accounts.active().key : ''}|${key(req)}`, () => load(req))
+        .then((xml) => res.type('application/rss+xml; charset=utf-8').send(xml))
+        .catch((e) => res.status(e.code === 'NO_AUTH' || e.code === 'AUTH' ? 401 : 502).type('text/plain; charset=utf-8').send(e.message));
+};
+const USER_TAB_NAMES = { tweets: '貼文', replies: '貼文與回覆', media: '媒體' };
+app.get('/rss/user/:name', sendRss((req) => `user/${req.params.name}/${req.query.tab || ''}`, async (req) => {
+    const tab = USER_TAB_NAMES[req.query.tab] ? req.query.tab : 'tweets';
+    const p = await api.userByName(req.params.name);
+    const t = await api.userTimeline(p.id, tab);
+    return { meta: { title: `${p.name}（@${p.screen_name}）的${USER_TAB_NAMES[tab]}`, link: `https://x.com/${p.screen_name}` }, tweets: t.tweets };
+}));
+app.get('/rss/multi', sendRss((req) => `multi/${req.query.users}/${req.query.media || ''}`, async (req) => {
+    const names = api.cleanNames(req.query.users);
+    const t = await api.multi(req.query.users, req.query.media === '1');
+    return { meta: { title: `${req.query.name || names.map((n) => `@${n}`).join('、')}${req.query.media === '1' ? '（媒體）' : ''}`, link: 'https://x.com/' }, tweets: t.tweets };
+}));
+app.get('/rss/search', sendRss((req) => `search/${req.query.q}/${req.query.product || ''}`, async (req) => {
+    if (!String(req.query.q || '').trim()) throw new Error('缺少 q');
+    const t = await api.search(req.query.q, req.query.product || 'latest');
+    return { meta: { title: `X 搜尋：${req.query.q}`, link: `https://x.com/search?q=${encodeURIComponent(req.query.q)}&f=live` }, tweets: t.tweets };
+}));
+app.get('/rss/list/:id', sendRss((req) => `list/${req.params.id}`, async (req) => {
+    const [l, t] = await Promise.all([api.listInfo(req.params.id), api.listTimeline(req.params.id)]);
+    return { meta: { title: `X 列表：${l.name}`, link: `https://x.com/i/lists/${req.params.id}` }, tweets: t.tweets };
+}));
+app.get('/rss/home', sendRss(() => 'home', async () => {
+    const t = await api.home('following');
+    return { meta: { title: 'X 追蹤中（最新）', link: 'https://x.com/home' }, tweets: t.tweets };
+}));
 app.get('/api/search', wrap((req) => {
     if (!String(req.query.q || '').trim()) throw new Error('請輸入搜尋文字');
     return api.search(req.query.q, req.query.product, cur(req));

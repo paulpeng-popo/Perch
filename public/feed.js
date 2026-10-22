@@ -206,6 +206,7 @@ function renderHead() {
         tabs = [[base, '全部'], [`${base}/media`, '媒體']];
         cur = r.media ? `${base}/media` : base;
     }
+    $('#b-rss').classList.toggle('hidden', !rssUrl(r));
     $('#b-title').textContent = title;
     $('#b-sub').textContent = sub;
     $('#b-avatar').outerHTML = avatar.replace('<span class="avatar', '<span id="b-avatar" class="avatar');
@@ -221,6 +222,20 @@ function renderHead() {
 function register(m, t, i) {
     state.media.push({ m, t, i });
     return state.media.length - 1;
+}
+
+// This page's RSS URL; null for pages without RSS
+function rssUrl(r) {
+    const base = `${location.origin}/rss`;
+    if (r.kind === 'home' && r.sub === 'following') return `${base}/home`;
+    if (r.kind === 'user' && r.tab !== 'likes') return `${base}/user/${encodeURIComponent(r.name)}${r.tab === 'tweets' ? '' : `?tab=${r.tab}`}`;
+    if (r.kind === 'search' && r.product !== 'people') return `${base}/search?q=${encodeURIComponent(r.q)}${r.product === 'latest' ? '' : `&product=${r.product}`}`;
+    if (r.kind === 'list') return `${base}/list/${encodeURIComponent(r.id)}`;
+    if (r.kind === 'multi') {
+        const g = groupFor(r.users);
+        return `${base}/multi?users=${encodeURIComponent(r.users.join(','))}${r.media ? '&media=1' : ''}${g ? `&name=${encodeURIComponent(g.name)}` : ''}`;
+    }
+    return null;
 }
 
 function visible(t) {
@@ -678,6 +693,13 @@ $('#b-groups').addEventListener('click', guard(async (e) => {
     if (!await confirmBox(`刪除群組「${g.name}」？`, { ok: '刪除', danger: true })) return;
     groups.splice(Number(del.dataset.groupDel), 1);
     await saveGroups();
+}));
+
+$('#b-rss').addEventListener('click', guard(async () => {
+    const url = state && rssUrl(state.route);
+    if (!url) return;
+    await navigator.clipboard.writeText(url);
+    toast('已複製 RSS 網址，貼到 RSS 閱讀器訂閱（閱讀器要在這台電腦上）');
 }));
 
 $('#b-side').addEventListener('click', (e) => {
