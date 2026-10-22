@@ -141,6 +141,12 @@
 .user-row:hover { background: var(--panel-2); }
 .user-bio { font-size: .9rem; margin-top: .2rem; }
 
+/* ---- Repost / quote list links ---- */
+.tw-links { display: flex; gap: 1.2rem; padding: .45rem 0; margin-top: .3rem; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); font-size: .92rem; }
+.tw-links a { color: var(--muted); text-decoration: none; }
+.tw-links a b { color: var(--text); }
+.tw-links a:hover { text-decoration: underline; }
+
 .logo-img { width: 1.9rem; height: 1.9rem; border-radius: 22%; display: block; }
 .manual-cookie { margin: .6rem 0; }
 .manual-cookie summary { cursor: pointer; color: var(--muted); margin-bottom: .5rem; }

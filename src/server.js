@@ -124,6 +124,14 @@ const cur = (req) => (req.query.cursor ? String(req.query.cursor) : undefined);
 app.get('/api/home', wrap((req) => api.home(req.query.kind, cur(req))));
 app.get('/api/user/:name', wrap((req) => api.userByName(req.params.name)));
 app.get('/api/user/:id/timeline', wrap((req) => api.userTimeline(req.params.id, req.query.tab, cur(req))));
+app.get('/api/tweet/:id', wrap((req) => api.thread(req.params.id, cur(req))));
+app.get('/api/tweet/:id/retweeters', wrap((req) => api.retweeters(req.params.id, cur(req))));
+app.get('/api/tweet/:id/quotes', wrap((req) => api.quotes(req.params.id, cur(req))));
+app.get('/api/search', wrap((req) => {
+    if (!String(req.query.q || '').trim()) throw new Error('請輸入搜尋文字');
+    return api.search(req.query.q, req.query.product, cur(req));
+}));
+app.get('/api/bookmarks', wrap((req) => api.bookmarks(cur(req))));
 
 function listen(port) {
     return new Promise((resolve, reject) => {

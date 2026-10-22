@@ -644,6 +644,56 @@ li.active .bubble-count { background: var(--accent-text); color: var(--accent); 
 .quote { display: inline-block; border-left: 3px solid var(--accent); padding-left: .5rem; }
 .tag { color: var(--accent); }
 
+/* ---- Bot buttons ---- */
+.kb { display: grid; gap: 3px; margin-top: .35rem; }
+.kb-row { display: flex; gap: 3px; }
+.kb-btn {
+    flex: 1;
+    text-align: center;
+    background: color-mix(in srgb, var(--accent) 12%, var(--panel));
+    color: var(--accent);
+    border: none;
+    border-radius: 6px;
+    padding: .3rem .5rem;
+    font-size: .85rem;
+    text-decoration: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.kb-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 22%, var(--panel)); }
+
+/* ---- Attachments ---- */
+.attach-panel { margin-bottom: .4rem; }
+.attach-list { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: .3rem; max-height: 9rem; overflow: auto; }
+.attach-item { display: flex; gap: .4rem; align-items: center; background: var(--panel-2); border-radius: 8px; padding: .3rem .4rem; max-width: 16rem; }
+.attach-item img { width: 3rem; height: 3rem; object-fit: cover; border-radius: 6px; }
+.attach-name { font-size: .82rem; overflow: hidden; text-overflow: ellipsis; word-break: break-all; }
+#b-chat.dragging { outline: 3px dashed var(--accent); outline-offset: -6px; }
+.cal-pop input[type=date] { width: auto; }
+
+/* ---- Filter rules ---- */
+.msg-filtered { text-align: center; margin: .3rem 0; font-size: .82rem; color: var(--muted); }
+.msg-filtered button { margin-left: .4rem; }
+#b-show-filtered { position: relative; }
+#b-show-filtered .nav-count { position: absolute; top: -.1rem; right: -.2rem; font-size: .62rem; }
+.chips { display: inline-flex; flex-wrap: wrap; gap: .3rem; }
+.chip { display: inline-flex; align-items: center; gap: .2rem; background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: .05rem .2rem .05rem .65rem; font-size: .85rem; }
+.chip button { border: none; background: none; padding: 0 .3rem; color: inherit; font-size: .8rem; }
+.pick-list { list-style: none; margin: .3rem 0 0; padding: 0; max-height: 12rem; overflow: auto; }
+.pick-list li { padding: .3rem .5rem; cursor: pointer; border-radius: 6px; }
+.pick-list li:hover { background: var(--panel-2); }
+.rule-list { margin-top: .5rem; display: flex; gap: .4rem; flex-wrap: wrap; align-items: center; }
+#r-chats { margin: .4rem 0; }
+#rule-dialog textarea { width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: .35rem .6rem; resize: vertical; }
+
+/* ---- Global search results ---- */
+.global-hit { background: var(--panel); border-radius: var(--radius); padding: .5rem .7rem; margin: .4rem 0; box-shadow: var(--shadow); cursor: pointer; display: flex; gap: .6rem; }
+.global-hit:hover { outline: 2px solid var(--accent); }
+.global-hit .gh-body { flex: 1; min-width: 0; }
+.global-hit .gh-text { color: var(--muted); font-size: .9rem; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.global-hit img { width: 4rem; height: 4rem; object-fit: cover; border-radius: 6px; flex: none; }
+
 /* ---- No sideways scrolling: scrollable areas scroll vertically only ---- */
 /* (Only containers that already scroll; adding this to ordinary blocks turns them into scroll containers and breaks sticky date separators) */
 #preview, #chat-list, #b-chats, .chat-info, .topics, .messages, .attach-list, .pick-list, .v-caption, dialog, .ctx-menu {

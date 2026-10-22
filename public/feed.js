@@ -1,4 +1,4 @@
-// Browsing: sources on the left, posts on the right. Routes live in #/..., so the browser's Back works.
+// Browsing: sources on the left (timelines, bookmarks), posts on the right. Routes live in #/..., so the browser's Back works.
 
 const feedEl = $('#b-feed');
 const listEl = $('#b-list');
@@ -8,14 +8,22 @@ let state = null;
 let me = null; // the logged-in account { screen_name, id }
 
 const USER_TABS = [['tweets', '貼文'], ['replies', '回覆'], ['media', '媒體'], ['likes', '喜歡']];
+const SEARCH_TABS = [['latest', '最新'], ['top', '熱門'], ['media', '媒體'], ['people', '使用者']];
 const HOME_TABS = [['following', '追蹤中'], ['foryou', '為你推薦']];
 
 function parseRoute(hash) {
     const parts = (hash || '').replace(/^#\/?/, '').split('/');
     const [kind, a, ...rest] = parts;
     if (kind === 'home') return { kind, sub: a === 'foryou' ? 'foryou' : 'following' };
+    if (kind === 'bookmarks') return { kind };
     if (kind === 'me') return { kind };
     if (kind === 'user' && a) return { kind, name: a, tab: USER_TABS.some(([k]) => k === rest[0]) ? rest[0] : 'tweets' };
+    if (kind === 'tweet' && /^\d+$/.test(a || '')) {
+        if (rest[0] === 'retweets') return { kind: 'retweets', id: a };
+        if (rest[0] === 'quotes') return { kind: 'quotes', id: a };
+        return { kind, id: a };
+    }
+    if (kind === 'search' && rest.length) return { kind, product: SEARCH_TABS.some(([k]) => k === a) ? a : 'latest', q: decodeURIComponent(rest.join('/')) };
     return null;
 }
 
@@ -28,6 +36,7 @@ async function fetchPage(st, cursor) {
         return api('GET', qs ? `${base}?${qs}` : base);
     };
     if (r.kind === 'home') return q('/api/home', `kind=${r.sub}`);
+    if (r.kind === 'bookmarks') return q('/api/bookmarks');
     if (r.kind === 'user') {
         if (!st.profile) {
             st.profile = await api('GET', `/api/user/${encodeURIComponent(r.name)}`);
@@ -35,6 +44,10 @@ async function fetchPage(st, cursor) {
         }
         return q(`/api/user/${st.profile.id}/timeline`, `tab=${r.tab}`);
     }
+    if (r.kind === 'tweet') return q(`/api/tweet/${r.id}`);
+    if (r.kind === 'retweets') return q(`/api/tweet/${r.id}/retweeters`);
+    if (r.kind === 'quotes') return q(`/api/tweet/${r.id}/quotes`);
+    if (r.kind === 'search') return q('/api/search', `q=${encodeURIComponent(r.q)}&product=${r.product}`);
     throw new Error('不認得的頁面');
 }
 
@@ -132,6 +145,10 @@ function renderHead() {
         avatar = `<span class="avatar big icon-avatar">${ico(r.sub === 'foryou' ? 'sparkle' : 'home')}</span>`;
         tabs = HOME_TABS.map(([k, v]) => [`#/home/${k}`, v]);
         cur = `#/home/${r.sub}`;
+    } else if (r.kind === 'bookmarks') {
+        title = '書籤';
+        avatar = `<span class="avatar big icon-avatar">${ico('bookmark')}</span>`;
+        xUrl = 'https://x.com/i/bookmarks';
     } else if (r.kind === 'user') {
         const p = st.profile;
         title = p ? p.name : `@${r.name}`;
@@ -141,6 +158,23 @@ function renderHead() {
         const isMe = me && p && p.id === me.id;
         tabs = USER_TABS.filter(([k]) => k !== 'likes' || isMe).map(([k, v]) => [`#/user/${r.name}${k === 'tweets' ? '' : `/${k}`}`, v]);
         cur = `#/user/${r.name}${r.tab === 'tweets' ? '' : `/${r.tab}`}`;
+    } else if (r.kind === 'tweet') {
+        title = '推文';
+        sub = '對話串';
+        avatar = `<span class="avatar big icon-avatar">${ico('chat')}</span>`;
+        const focal = st.tweets.find((t) => t.id === r.id);
+        xUrl = `https://x.com/${focal && focal.user ? focal.user.screen_name : 'i'}/status/${r.id}`;
+    } else if (r.kind === 'search') {
+        title = `搜尋：${r.q}`;
+        avatar = `<span class="avatar big icon-avatar">${ico('search')}</span>`;
+        xUrl = `https://x.com/search?q=${encodeURIComponent(r.q)}&f=live`;
+        tabs = SEARCH_TABS.map(([k, v]) => [`#/search/${k}/${encodeURIComponent(r.q)}`, v]);
+        cur = `#/search/${r.product}/${encodeURIComponent(r.q)}`;
+    } else if (r.kind === 'retweets' || r.kind === 'quotes') {
+        title = r.kind === 'retweets' ? '轉推名單' : '引用推文';
+        sub = '回到推文按左上返回';
+        avatar = `<span class="avatar big icon-avatar">${ico(r.kind === 'retweets' ? 'retweet' : 'quote')}</span>`;
+        xUrl = `https://x.com/i/status/${r.id}/${r.kind}`;
     }
     $('#b-title').textContent = title;
     $('#b-sub').textContent = sub;
@@ -159,13 +193,28 @@ function register(m, t, i) {
 
 function visible(t) {
     const r = state.route;
+    if (r.kind === 'tweet' || r.kind === 'search' || r.kind === 'quotes') return true;
     if (prefs.hideRt && t.retweeted_by && !(r.kind === 'user' && r.tab !== 'tweets')) return false;
     if (prefs.hideReplies && t.reply_to && r.kind !== 'user') return false;
     return true;
 }
 
 function tweetsHtml(list, all) {
-    return list.filter(visible).map((t) => renderTweet(t, register)).join('');
+    const r = state.route;
+    const shown = list.filter(visible);
+    return shown.map((t) => {
+        const idx = all.indexOf(t);
+        const next = all[idx + 1];
+        const opts = {};
+        if (r.kind === 'tweet') {
+            opts.inThread = true;
+            opts.focal = t.id === r.id;
+            const focalIdx = all.findIndex((x) => x.id === r.id);
+            // Link ancestors before the focal post, and replies in the same thread
+            opts.threadLine = (focalIdx > -1 && idx < focalIdx) || (t.group && next && next.group === t.group);
+        }
+        return renderTweet(t, register, opts);
+    }).join('');
 }
 
 function rerenderFeed() {
@@ -181,6 +230,18 @@ function rerenderFeed() {
 
 function appendRender(tweets, users) {
     if (state.route.kind === 'user' && state.profile && !$('#b-top').innerHTML) $('#b-top').innerHTML = renderProfile(state.profile);
+    // Thread lines depend on neighbours, so re-rendering everything is simpler
+    if (state.route.kind === 'tweet') {
+        const keep = feedEl.scrollTop;
+        rerenderFeed();
+        const focal = listEl.querySelector('.tw.focal');
+        if (!keep && focal && !state.scrolledToFocal) {
+            state.scrolledToFocal = true;
+            focal.scrollIntoView({ block: 'start' });
+            feedEl.scrollTop -= 8;
+        } else feedEl.scrollTop = keep;
+        return;
+    }
     listEl.insertAdjacentHTML('beforeend', tweetsHtml(tweets, state.tweets) + users.map(renderUserRow).join(''));
     afterRender();
 }
@@ -249,10 +310,21 @@ listEl.addEventListener('click', guard(async (e) => {
     if (e.target.closest('a, button, input, video, .poll')) return;
     // Don't navigate while selecting text
     if (String(window.getSelection())) return;
+    const quote = e.target.closest('[data-open]');
+    if (quote) {
+        location.hash = `#/tweet/${quote.dataset.open}`;
+        return;
+    }
     const row = e.target.closest('.user-row');
     if (row) {
         location.hash = `#/user/${row.dataset.user}`;
         return;
+    }
+    const art = e.target.closest('.tw[data-id]');
+    if (art && !art.classList.contains('focal')) {
+        const id = art.dataset.id;
+        if (e.ctrlKey || e.metaKey) window.open(`#/tweet/${id}`, '_blank');
+        else location.hash = `#/tweet/${id}`;
     }
 }));
 
@@ -316,6 +388,30 @@ $('#b-side').addEventListener('click', (e) => {
     }
     pendingFromSide = li.dataset.route;
     location.hash = li.dataset.route;
+});
+$('#b-q').addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    const v = $('#b-q').value.trim();
+    if (!v) return;
+    const inner = internalHref(v);
+    let target;
+    if (inner) target = inner;
+    else if (/^@\w{1,15}$/.test(v)) target = `#/user/${v.slice(1)}`;
+    else target = `#/search/latest/${encodeURIComponent(v)}`;
+    pendingFromSide = target;
+    if (location.hash === target) {
+        if (state) state.fromSide = true;
+        $('.browse').classList.add('open');
+    } else location.hash = target;
+    showTab('browse');
+});
+document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        showTab('browse');
+        $('#b-q').focus();
+        $('#b-q').select();
+    }
 });
 
 window.addEventListener('hashchange', () => {

@@ -120,6 +120,10 @@ function renderTweet(t, reg, opts = {}) {
                 ${renderMedia(t, reg)}
                 ${renderCard(t.card)}
                 ${renderQuote(t.quote, reg)}
+                ${focal && (s.retweet || s.quote) ? `<div class="tw-links">
+                    ${s.retweet ? `<a href="#/tweet/${esc(t.id)}/retweets"><b>${fmtNum(s.retweet)}</b> 轉推</a>` : ''}
+                    ${s.quote ? `<a href="#/tweet/${esc(t.id)}/quotes"><b>${fmtNum(s.quote)}</b> 引用</a>` : ''}
+                </div>` : ''}
                 <div class="tw-stats">
                     ${stat('reply', s.reply, '回覆')}
                     ${stat('retweet', s.retweet + (s.quote || 0), `轉推 ${fmtNum(s.retweet)}・引用 ${fmtNum(s.quote)}${t.retweeted ? '（你轉推過）' : ''}`, t.retweeted ? 'rt' : '')}

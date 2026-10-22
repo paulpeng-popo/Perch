@@ -32,10 +32,14 @@
     <section id="tab-browse" class="tab">
         <div class="browse">
             <aside class="chats">
+                <div class="chats-tools">
+                    <input id="b-q" type="search" placeholder="Enter 搜尋推文・@帳號 直接開">
+                </div>
                 <div id="b-side" class="side-scroll">
                     <ul id="b-sources" class="side-list">
                         <li data-route="#/home/following"><span class="side-icon" data-icon="home"></span><span class="c-title">追蹤中（最新）</span></li>
                         <li data-route="#/home/foryou"><span class="side-icon" data-icon="sparkle"></span><span class="c-title">為你推薦</span></li>
+                        <li data-route="#/bookmarks"><span class="side-icon" data-icon="bookmark"></span><span class="c-title">書籤</span></li>
                         <li data-route="#/me"><span class="side-icon" data-icon="user"></span><span class="c-title">我的個人檔案</span></li>
                     </ul>
                 </div>
@@ -46,6 +50,7 @@
                     <h2>選一個來源開始瀏覽</h2>
                     <ul class="tips">
                         <li>只讀不寫：不會按讚、轉推、追蹤，也不會把通知標成已讀</li>
+                        <li>左上搜尋框按 <kbd>Enter</kbd> 搜尋推文，輸入 <kbd>@帳號</kbd> 直接開個人檔案</li>
                     </ul>
                 </div>
                 <div id="b-view" class="hidden">
