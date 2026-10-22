@@ -9,6 +9,7 @@
 .warn-box { background: color-mix(in srgb, var(--warn) 14%, var(--panel)); border-radius: 8px; padding: .5rem .7rem; font-size: .88rem; }
 .rate-box { margin-top: .8rem; font-size: .88rem; }
 .rate-box summary { cursor: pointer; color: var(--muted); }
+.tips .ico { width: 1em; height: 1em; vertical-align: -0.15em; }
 
 /* ---- Accounts ---- */
 .acct-btn { cursor: pointer; background: var(--panel); }
@@ -21,6 +22,46 @@
 .acct-list li:last-child { border-bottom: none; }
 .acct-list .avatar { width: 2.4rem; height: 2.4rem; }
 
+/* ---- Sidebar ---- */
+.side-scroll { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: .3rem; }
+.side-list { list-style: none; margin: 0; padding: 0; }
+.side-list li { display: flex; gap: .7rem; padding: .45rem .55rem; cursor: pointer; align-items: center; border-radius: 10px; user-select: none; }
+.side-list li:hover { background: var(--panel-2); }
+.side-list li.active { background: var(--accent); color: var(--accent-text); }
+.side-list li.active .muted { color: inherit; opacity: .85; }
+.side-list li.empty-li { cursor: default; font-size: .85rem; }
+.side-list li.empty-li:hover { background: none; }
+.side-list li.skeleton { pointer-events: none; }
+.side-list .avatar { width: 2.4rem; height: 2.4rem; font-size: .95rem; }
+.side-icon { width: 2.4rem; height: 2.4rem; flex: none; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: var(--accent-soft); color: var(--accent); }
+.side-icon .ico { width: 1.2rem; height: 1.2rem; }
+.side-list li.active .side-icon { background: color-mix(in srgb, var(--accent-text) 20%, transparent); color: inherit; }
+.side-head { display: flex; align-items: center; justify-content: space-between; padding: .7rem .55rem .2rem; font-size: .8rem; font-weight: 600; color: var(--muted); }
+.side-head .icon.small-icon { min-width: 1.8rem; height: 1.8rem; }
+.side-head .icon.small-icon .ico { width: .95rem; height: .95rem; }
+.side-more { text-align: center; padding: .4rem; }
+.verified { display: inline-flex; color: var(--accent); margin-left: .2em; vertical-align: -0.12em; }
+.verified .ico { width: 1em; height: 1em; }
+.c-title .mark, .tw-name .mark, .pf-name .mark { margin: 0 0 0 .25em; }
+
+/* ---- Feed header and tabs ---- */
+#b-view { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+#b-view.hidden { display: none; }
+#b-back.back-btn { padding: 0; width: 2.5rem; height: 2.5rem; font-size: 1.2rem; flex: none; display: inline-flex; align-items: center; justify-content: center; }
+.icon-avatar { background: var(--accent-soft); color: var(--accent); }
+.icon-avatar .ico { width: 1.3rem; height: 1.3rem; }
+.feed-tabs { display: flex; background: var(--panel); border-bottom: 1px solid var(--line); overflow: hidden; flex: none; }
+.feed-tabs a { flex: 1; text-align: center; padding: .55rem .4rem; color: var(--muted); text-decoration: none; font-weight: 500; border-bottom: 3px solid transparent; white-space: nowrap; }
+.feed-tabs a:hover { background: var(--panel-2); color: var(--text); }
+.feed-tabs a.active { color: var(--text); font-weight: 700; border-bottom-color: var(--accent); }
+
+/* ---- Posts ---- */
+#b-feed { padding: 0; background: var(--bg); }
+#b-top, #b-list:not(.wall), .feed-foot { max-width: 40rem; margin: 0 auto; }
+#b-list:not(.wall) { background: var(--panel); border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
+#b-list:not(.wall):empty { display: none; }
+.feed-foot { text-align: center; padding: 1.2rem .8rem 2rem; }
+.feed-error { color: var(--danger); margin-bottom: .5rem; white-space: pre-wrap; }
 .tw { padding: .7rem .9rem .35rem; border-bottom: 1px solid var(--line); cursor: pointer; transition: background .12s; position: relative; }
 .tw:hover { background: color-mix(in srgb, var(--panel-2) 70%, var(--panel)); }
 .tw.focal { cursor: default; background: var(--panel); }
@@ -88,3 +129,48 @@
 .logo-img { width: 1.9rem; height: 1.9rem; border-radius: 22%; display: block; }
 .manual-cookie { margin: .6rem 0; }
 .manual-cookie summary { cursor: pointer; color: var(--muted); margin-bottom: .5rem; }
+
+/* No sideways scrolling */
+.side-scroll, #b-feed { overflow-x: hidden; }
+
+/* The "back to list" button only appears on narrow screens */
+.menu-btn { display: none !important; }
+
+@media (max-width: 860px) {
+    #b-top, #b-list:not(.wall), .feed-foot { max-width: none; }
+    #b-list:not(.wall) { border: none; }
+    .tw-stat { min-width: 0; }
+    .menu-btn { display: inline-flex !important; flex: none; }
+    .chat-head { gap: .4rem; padding: .4rem .5rem; }
+    .chat-head .avatar.big { display: none; }
+    .head-tools { flex-wrap: nowrap; }
+    .head-tools .icon, .head-tools .icon-link { min-width: 2rem; }
+    .chats { border-right: none; }
+    .tw { padding: .6rem .7rem .3rem; }
+    .tw-row { gap: .55rem; }
+    .tw-avatar .avatar { width: 2.5rem; height: 2.5rem; }
+    .tw.thread-line::before { left: calc(.7rem + 1.25rem - 1px); top: 3.4rem; }
+    .tw-pre { margin-left: 2rem; }
+    .pf-avatar { width: 5rem; height: 5rem; margin-top: -2.6rem; }
+    .feed-tabs a { padding: .5rem .2rem; font-size: .92rem; }
+    .art-h1 { font-size: 1.3rem; }
+    .acct-menu { right: .5rem !important; left: .5rem; min-width: 0; }
+}
+@media (max-width: 700px) {
+    /* Keep the account button on narrow screens (otherwise phones can't switch accounts), just shorter */
+    .header-tools .badge.acct-btn { display: inline-block; max-width: 7.5rem; overflow: hidden; text-overflow: ellipsis; }
+    header h1 .app-name { display: none; }
+    header { padding: .4rem .6rem; gap: .4rem; min-height: 0; }
+    nav button { padding: .3rem .5rem; }
+    .header-tools .text-icon { display: none; }
+    .tw-stat { padding: .2rem .25rem; }
+    .tw-stats .tw-act { min-width: 1.8rem; }
+}
+@media (max-width: 480px) {
+    /* On very narrow screens, tab buttons show icons only (text on hover) so the header fits on one line */
+    nav { flex: 0 1 auto; gap: 0; }
+    nav button { font-size: 0; padding: .4rem .55rem; }
+    nav button .ico { width: 1.2rem; height: 1.2rem; margin: 0; }
+    header { flex-wrap: nowrap; }
+    .header-tools { margin-left: auto; }
+}

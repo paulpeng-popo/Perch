@@ -3,6 +3,7 @@ const x = require('./x');
 const parse = require('./parse');
 const accounts = require('./accounts');
 
+const PAGE = 20;
 const viewerCache = {}; // account key -> profile
 
 // Who is logged in for an account (defaults to the active account)
@@ -20,4 +21,20 @@ const resetViewer = (key) => {
     else for (const k of Object.keys(viewerCache)) delete viewerCache[k];
 };
 
-module.exports = { viewer, resetViewer };
+const withCursor = (vars, cursor) => (cursor ? { ...vars, cursor } : vars);
+
+async function home(kind, cursor) {
+    const latest = kind !== 'foryou';
+    const vars = {
+        count: PAGE,
+        includePromotedContent: true,
+        latestControlAvailable: true,
+        requestContext: cursor ? undefined : 'launch',
+        withCommunity: true,
+        seenTweetIds: [],
+    };
+    if (!vars.requestContext) delete vars.requestContext;
+    return parse.timeline(await x.gql(latest ? 'HomeLatestTimeline' : 'HomeTimeline', withCursor(vars, cursor)));
+}
+
+module.exports = { viewer, resetViewer, home };

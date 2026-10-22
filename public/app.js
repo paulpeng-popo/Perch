@@ -115,6 +115,7 @@ const bindPref = (sel, key, rerender) => $(sel).addEventListener('change', (e) =
     prefs[key] = e.target.checked;
     savePrefs();
     applyPrefs();
+    if (rerender && typeof rerenderFeed === 'function') rerenderFeed();
 });
 bindPref('#set-blur', 'blur');
 bindPref('#set-blur-sensitive', 'blurSensitive', true);
@@ -140,7 +141,7 @@ document.querySelectorAll('nav button').forEach((b) => b.addEventListener('click
 let authState = null;
 let accountList = [];
 
-// Called by status polling and account switching
+// Called by status polling and account switching: reload the browse view when the account changed (or just logged in)
 function applyAuth(auth, list) {
     const prev = authState;
     authState = auth;
@@ -153,6 +154,8 @@ function applyAuth(auth, list) {
         badge.textContent = auth.key ? '登入失效' : '未登入';
         badge.className = 'badge acct-btn bad';
     }
+    const switched = !!(prev && prev.key && auth.key && prev.key !== auth.key);
+    if (auth.ok && (!prev || !prev.ok || switched) && typeof onLogin === 'function') onLogin(switched);
     if (!$('#acct-menu').classList.contains('hidden')) renderAcctMenu();
 }
 

@@ -14,8 +14,9 @@
 <header>
     <h1><img class="logo-img" src="icon.png" alt=""> <span class="app-name">Perch</span></h1>
     <nav>
+        <button data-tab="browse" data-icon="home" class="active" title="瀏覽">瀏覽</button>
         <button data-tab="log" data-icon="log" title="日誌">日誌</button>
-        <button data-tab="settings" data-icon="settings" class="active" title="設定">設定</button>
+        <button data-tab="settings" data-icon="settings" title="設定">設定</button>
     </nav>
     <div class="header-tools">
         <button id="font-down" class="icon text-icon" title="字小一點（Ctrl+-）">A−</button>
@@ -27,13 +28,57 @@
 </header>
 
 <main>
+    <!-- Browse -->
+    <section id="tab-browse" class="tab">
+        <div class="browse">
+            <aside class="chats">
+                <div id="b-side" class="side-scroll">
+                    <ul id="b-sources" class="side-list">
+                        <li data-route="#/home/following"><span class="side-icon" data-icon="home"></span><span class="c-title">追蹤中（最新）</span></li>
+                        <li data-route="#/home/foryou"><span class="side-icon" data-icon="sparkle"></span><span class="c-title">為你推薦</span></li>
+                    </ul>
+                </div>
+            </aside>
+            <section class="chat">
+                <div id="b-empty" class="chat-empty">
+                    <div class="empty-icon" data-icon="x"></div>
+                    <h2>選一個來源開始瀏覽</h2>
+                    <ul class="tips">
+                        <li>只讀不寫：不會按讚、轉推、追蹤，也不會把通知標成已讀</li>
+                    </ul>
+                </div>
+                <div id="b-view" class="hidden">
+                    <div class="chat-head">
+                        <button id="b-menu" class="icon menu-btn" data-icon="topics" title="回到列表"></button>
+                        <button id="b-back" class="back-btn" data-icon="back" title="返回（Alt+←）"></button>
+                        <span id="b-avatar" class="avatar big"></span>
+                        <div class="chat-meta">
+                            <b id="b-title"></b>
+                            <div id="b-sub" class="muted"></div>
+                        </div>
+                        <div class="head-tools">
+                            <button id="b-reload" class="icon" data-icon="refresh" title="重新整理（R）"></button>
+                            <a id="b-open-x" class="icon icon-link" data-icon="external" title="在 x.com 開啟" target="_blank" rel="noopener noreferrer"></a>
+                        </div>
+                    </div>
+                    <div id="b-tabs" class="feed-tabs hidden"></div>
+                    <div id="b-feed" class="messages">
+                        <div id="b-top"></div>
+                        <div id="b-list"></div>
+                        <div id="b-foot" class="feed-foot"></div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </section>
+
     <!-- Log -->
     <section id="tab-log" class="tab hidden">
         <pre id="log"></pre>
     </section>
 
     <!-- Settings -->
-    <section id="tab-settings" class="tab">
+    <section id="tab-settings" class="tab hidden">
         <div class="card">
             <h2>X 帳號</h2>
             <p id="auth-state" class="muted"></p>
@@ -89,5 +134,6 @@
 <script src="icons.js"></script>
 <script src="app.js"></script>
 <script src="render.js"></script>
+<script src="feed.js"></script>
 </body>
 </html>

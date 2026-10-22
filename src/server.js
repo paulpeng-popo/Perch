@@ -119,6 +119,10 @@ app.post('/api/rediscover', wrap(async () => {
     return x.status();
 }));
 
+// ---- Browsing (read-only) ----
+const cur = (req) => (req.query.cursor ? String(req.query.cursor) : undefined);
+app.get('/api/home', wrap((req) => api.home(req.query.kind, cur(req))));
+
 function listen(port) {
     return new Promise((resolve, reject) => {
         const server = app.listen(port, '127.0.0.1', () => resolve(server));
