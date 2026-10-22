@@ -58,6 +58,24 @@ const guard = (fn) => async (...args) => {
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const fmtTime = (s) => (s ? new Date(s).toLocaleString('zh-TW', { hour12: false }) : '-');
+// 1234 → 1,234; from ten thousand and a hundred million up: short form with Chinese units
+function fmtNum(n) {
+    if (n == null) return '';
+    if (n >= 1e8) return `${(n / 1e8).toFixed(n >= 1e9 ? 0 : 1).replace(/\.0$/, '')}億`;
+    if (n >= 1e4) return `${(n / 1e4).toFixed(n >= 1e5 ? 0 : 1).replace(/\.0$/, '')}萬`;
+    return n.toLocaleString('zh-TW');
+}
+// Post time: just now / N min / N h / month and day / year, month and day
+function fmtAgo(s) {
+    if (!s) return '';
+    const d = new Date(s);
+    const diff = (Date.now() - d.getTime()) / 1000;
+    if (diff < 60) return '剛剛';
+    if (diff < 3600) return `${Math.floor(diff / 60)} 分`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)} 小時`;
+    if (d.getFullYear() === new Date().getFullYear()) return `${d.getMonth() + 1}月${d.getDate()}日`;
+    return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+}
 
 // ---- UI preferences (stored in this browser only) ----
 const prefs = (() => {
