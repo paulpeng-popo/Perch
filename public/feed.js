@@ -112,6 +112,7 @@ function newState(hash, route) {
 
 async function openRoute(hash) {
     if (state) state.scroll = feedEl.scrollTop;
+    if (selecting && (!state || state.hash !== hash)) setSelecting(false);
     let route = parseRoute(hash);
     if (route && route.kind === 'me') {
         if (!me) {
@@ -293,7 +294,97 @@ function afterRender() {
         img.dataset.bound = '1';
         img.addEventListener('error', () => img.classList.add('broken'), { once: true });
     });
+    markSelected();
+    markDownloaded();
 }
+
+// ---- Downloaded marks (✓) ----
+// Remember by media URL whether it was downloaded; re-renders reuse this instead of asking the server again
+const gotCache = new Map();
+let gotBusy = false;
+function applyGot() {
+    if (!state) return;
+    listEl.querySelectorAll('[data-mi]').forEach((el) => {
+        const it = state.media[Number(el.dataset.mi)];
+        el.classList.toggle('got', !!(it && gotCache.get(it.m.url)));
+    });
+}
+async function markDownloaded() {
+    applyGot();
+    if (gotBusy || !state) return;
+    const todo = [];
+    const seen = new Set();
+    state.media.forEach((it, mi) => {
+        if (it.m.url && !gotCache.has(it.m.url) && !seen.has(it.m.url)) {
+            seen.add(it.m.url);
+            todo.push(mi);
+        }
+    });
+    if (!todo.length) return;
+    gotBusy = true;
+    try {
+        for (let i = 0; i < todo.length; i += 400) {
+            const part = todo.slice(i, i + 400);
+            const r = await api('POST', '/api/downloaded', { items: part.map(mediaItem) });
+            part.forEach((mi, k) => gotCache.set(state.media[mi].m.url, !!r[k]));
+        }
+    } catch { /* can't check: leave unmarked for now */ }
+    gotBusy = false;
+    applyGot();
+}
+// Called by app.js when the download queue finishes: re-check the ones not yet downloaded
+function refreshDownloaded() {
+    for (const [k, v] of gotCache) if (!v) gotCache.delete(k);
+    markDownloaded();
+}
+
+// ---- Multi-select download ----
+let selecting = false;
+const selected = new Set(); // media URLs
+
+function markSelected() {
+    if (!state) return;
+    listEl.querySelectorAll('[data-mi]').forEach((el) => {
+        const it = state.media[Number(el.dataset.mi)];
+        el.classList.toggle('selected', !!(selecting && it && selected.has(it.m.url)));
+    });
+    $('#b-sel-count').textContent = selected.size;
+}
+function setSelecting(on) {
+    selecting = on;
+    if (!on) selected.clear();
+    $('#b-selbar').classList.toggle('hidden', !on);
+    $('#b-select').classList.toggle('on', on);
+    listEl.classList.toggle('selecting', on);
+    markSelected();
+}
+// Selected URLs → download items (each URL once)
+function selectedItems() {
+    const seen = new Set();
+    const out = [];
+    state.media.forEach((it, mi) => {
+        if (selected.has(it.m.url) && !seen.has(it.m.url)) {
+            seen.add(it.m.url);
+            out.push(mediaItem(mi));
+        }
+    });
+    return out;
+}
+$('#b-select').addEventListener('click', () => setSelecting(!selecting));
+$('#b-sel-cancel').addEventListener('click', () => setSelecting(false));
+$('#b-sel-all').addEventListener('click', () => {
+    state.media.forEach((it) => it.m.url && selected.add(it.m.url));
+    markSelected();
+});
+$('#b-sel-new').addEventListener('click', () => {
+    state.media.forEach((it) => it.m.url && !gotCache.get(it.m.url) && selected.add(it.m.url));
+    markSelected();
+});
+$('#b-sel-dl').addEventListener('click', guard(async () => {
+    if (!selected.size) return toast('還沒有選任何媒體');
+    await download(selectedItems());
+    setSelecting(false);
+}));
 
 function renderFoot() {
     const st = state;
@@ -321,6 +412,19 @@ footEl.addEventListener('click', (e) => {
 });
 
 // ---- Clicks ----
+function mediaItem(mi) {
+    const it = state.media[mi];
+    if (!it) return null;
+    return { url: it.m.url, user: it.t.user && it.t.user.screen_name, tweetId: it.t.id, idx: it.i + 1, ext: it.m.ext };
+}
+async function download(items) {
+    const list = items.filter((i) => i && i.url);
+    if (!list.length) return toast('沒有可以下載的媒體');
+    const r = await api('POST', '/api/download', { items: list });
+    toast(`已加入下載：${r.queued} 個`);
+    pollStatus();
+}
+
 function tweetById(id) {
     if (!state) return null;
     for (const t of state.tweets) {
@@ -331,7 +435,21 @@ function tweetById(id) {
 }
 
 listEl.addEventListener('click', guard(async (e) => {
+    const dl = e.target.closest('[data-dl-mi]');
+    if (dl) {
+        e.stopPropagation();
+        return download([mediaItem(Number(dl.dataset.dlMi))]);
+    }
     const media = e.target.closest('[data-mi]');
+    if (media && selecting) {
+        const it = state.media[Number(media.dataset.mi)];
+        if (it && it.m.url) {
+            if (selected.has(it.m.url)) selected.delete(it.m.url);
+            else selected.add(it.m.url);
+            markSelected();
+        }
+        return;
+    }
     if (media) {
         if (media.classList.contains('spoiler')) {
             media.classList.remove('spoiler');
@@ -344,6 +462,9 @@ listEl.addEventListener('click', guard(async (e) => {
         const art = act.closest('.tw');
         const t = tweetById(art && art.dataset.id);
         if (!t) return;
+        if (act.dataset.act === 'dl') {
+            return download(t.media.map((m, i) => ({ url: m.url, user: t.user.screen_name, tweetId: t.id, idx: i + 1, ext: m.ext })));
+        }
         if (act.dataset.act === 'copy') {
             await navigator.clipboard.writeText(`https://x.com/${t.user.screen_name}/status/${t.id}`);
             return toast('已複製連結');
@@ -429,6 +550,8 @@ document.addEventListener('keydown', (e) => {
         if (target) target.scrollIntoView({ block: 'start' });
     } else if (e.key === 'r') $('#b-reload').click();
     else if (e.key === 'g') $('#b-wall').click();
+    else if (e.key === 's') $('#b-select').click();
+    else if (e.key === 'Escape' && selecting) setSelecting(false);
     else return;
     e.preventDefault();
 });

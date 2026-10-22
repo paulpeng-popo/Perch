@@ -189,6 +189,26 @@
 .manual-cookie { margin: .6rem 0; }
 .manual-cookie summary { cursor: pointer; color: var(--muted); margin-bottom: .5rem; }
 
+/* ---- Multi-select download, downloaded marks ---- */
+.media.selected, .wall-item.selected { outline: 3px solid var(--accent); outline-offset: -3px; }
+.selecting .media, .selecting .wall-item { cursor: pointer; }
+.selecting .media::before, .selecting .wall-item::before {
+    content: ""; position: absolute; left: .4rem; top: .4rem; z-index: 2; width: 1.2rem; height: 1.2rem;
+    border-radius: 50%; border: 2px solid #fff; background: rgb(0 0 0 / .35); box-shadow: 0 0 2px rgb(0 0 0 / .6);
+}
+.selecting .media.selected::before, .selecting .wall-item.selected::before {
+    background: var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12 5 5 9-10'/%3E%3C/svg%3E") center / 70% no-repeat;
+}
+.selecting .media-dl { display: none; }
+.media.got::after, .wall-item.got::after {
+    content: "✓"; position: absolute; right: .4rem; bottom: .4rem; z-index: 2; width: 1.3rem; height: 1.3rem;
+    border-radius: 50%; background: var(--ok); color: #fff; font-size: .78rem; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; box-shadow: 0 0 3px rgb(0 0 0 / .5); pointer-events: none;
+}
+/* The sensitive-content notice also uses ::after: when both apply, "click to show" wins */
+.media.spoiler.got::after, .wall-item.spoiler.got::after { content: "敏感內容・點一下顯示"; inset: 0; width: auto; height: auto; border-radius: 0; background: none; box-shadow: none; font-size: .85rem; text-shadow: 0 1px 3px #000; }
+#b-selbar { flex: none; }
+
 /* No sideways scrolling */
 .side-scroll, #b-feed { overflow-x: hidden; }
 

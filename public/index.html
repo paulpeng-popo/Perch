@@ -27,6 +27,11 @@
     <div id="acct-menu" class="ctx-menu acct-menu hidden"></div>
 </header>
 
+<section id="now" class="hidden">
+    <div class="now-text"></div>
+    <div class="bar"><div></div></div>
+</section>
+
 <main>
     <!-- Browse -->
     <section id="tab-browse" class="tab">
@@ -58,7 +63,7 @@
                     <ul class="tips">
                         <li>只讀不寫：不會按讚、轉推、追蹤，也不會把通知標成已讀</li>
                         <li>左上搜尋框按 <kbd>Enter</kbd> 搜尋推文，輸入 <kbd>@帳號</kbd> 直接開個人檔案</li>
-                        <li>點圖片後用 <kbd>←</kbd> <kbd>→</kbd> 切換、<kbd>空白鍵</kbd> 幻燈片</li>
+                        <li>點圖片後用 <kbd>←</kbd> <kbd>→</kbd> 切換、<kbd>空白鍵</kbd> 幻燈片、<kbd>D</kbd> 下載</li>
                         <li>右上 <span data-icon="grid"></span> 切換媒體牆，一次看整個時間軸的圖片和影片</li>
                     </ul>
                 </div>
@@ -72,12 +77,21 @@
                             <div id="b-sub" class="muted"></div>
                         </div>
                         <div class="head-tools">
+                            <button id="b-select" class="icon" data-icon="select" title="多選下載（S）"></button>
                             <button id="b-wall" class="icon" data-icon="grid" title="媒體牆（G）"></button>
                             <button id="b-reload" class="icon" data-icon="refresh" title="重新整理（R）"></button>
                             <a id="b-open-x" class="icon icon-link" data-icon="external" title="在 x.com 開啟" target="_blank" rel="noopener noreferrer"></a>
                         </div>
                     </div>
                     <div id="b-tabs" class="feed-tabs hidden"></div>
+                    <div id="b-selbar" class="selbar hidden">
+                        <span>已選 <b id="b-sel-count">0</b> 個</span>
+                        <button id="b-sel-all" class="small">全選已載入的媒體</button>
+                        <button id="b-sel-new" class="small" title="只選還沒下載過的">全選未下載的</button>
+                        <button id="b-sel-dl" class="small primary">下載選取</button>
+                        <span class="spacer"></span>
+                        <button id="b-sel-cancel" class="small">取消</button>
+                    </div>
                     <div id="b-feed" class="messages">
                         <div id="b-top"></div>
                         <div id="b-list"></div>
@@ -115,6 +129,15 @@
                 <button id="btn-add-acct" class="primary">新增並切換過去</button>
             </details>
             <p class="warn-box">基於網頁 API 實作，可能違反 X 的使用條款，瀏覽太兇可能被限流或鎖帳號，後果請自行負責。</p>
+        </div>
+
+        <div class="card">
+            <h2>下載</h2>
+            <label>下載資料夾 <input id="set-root"></label>
+            <p class="muted">存成 <code>資料夾/帳號/推文ID_第幾張.副檔名</code>，已存在的會略過。</p>
+            <div class="actions">
+                <button id="btn-save-root" class="primary">儲存</button>
+            </div>
         </div>
 
         <div class="card">
@@ -156,6 +179,7 @@
         <button id="viewer-play" class="v-btn" data-icon="play" title="幻燈片（空白鍵）"></button>
         <button id="viewer-goto" class="v-btn" data-icon="goto" title="開啟這則推文"></button>
         <a id="viewer-save" class="v-btn" data-icon="external" title="在新分頁開原檔" target="_blank" rel="noopener noreferrer"></a>
+        <button id="viewer-download" class="v-btn" data-icon="download" title="下載到資料夾（D）"></button>
         <button id="viewer-close" class="v-btn" data-icon="close" title="關閉（Esc）"></button>
     </div>
     <button id="viewer-prev" class="v-nav prev" data-icon="left" title="上一張（←）"></button>

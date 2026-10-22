@@ -1,4 +1,4 @@
-// Viewer: ← → to flip, Space slideshow, Z zoom, Esc close; swipe on touch screens
+// Viewer: ← → to flip, Space slideshow, Z zoom, D download, Esc close; swipe on touch screens
 
 const viewer = $('#viewer');
 const vBody = $('#viewer-body');
@@ -99,10 +99,17 @@ function toggleSlides() {
     }, 3500);
 }
 
+function viewerDownload() {
+    const it = state.media[vIndex];
+    if (!it) return;
+    guard(download)([{ url: it.m.url, user: it.t.user && it.t.user.screen_name, tweetId: it.t.id, idx: it.i + 1, ext: it.m.ext }]);
+}
+
 $('#viewer-prev').addEventListener('click', () => step(-1));
 $('#viewer-next').addEventListener('click', () => step(1));
 $('#viewer-zoom').addEventListener('click', toggleZoom);
 $('#viewer-play').addEventListener('click', toggleSlides);
+$('#viewer-download').addEventListener('click', viewerDownload);
 $('#viewer-close').addEventListener('click', () => viewer.close());
 $('#viewer-goto').addEventListener('click', () => {
     const it = state.media[vIndex];
@@ -127,6 +134,7 @@ viewer.addEventListener('keydown', (e) => {
     else if (e.key === 'ArrowRight') step(1);
     else if (e.key === ' ') toggleSlides();
     else if (e.key === 'z' || e.key === 'Z') toggleZoom();
+    else if (e.key === 'd' || e.key === 'D') viewerDownload();
     else return;
     e.preventDefault();
 });

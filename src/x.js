@@ -25,6 +25,8 @@ let transactionAt = 0;
 let initPromise = null;
 const rateLimits = {}; // account key -> operation -> { limit, remaining, reset }
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
 async function fetchText(url, headers = {}) {
     const res = await fetch(url, { headers: { 'user-agent': UA, ...headers } });
     if (!res.ok) throw new Error(`下載 ${url.split('?')[0]} 失敗：HTTP ${res.status}`);
@@ -221,6 +223,18 @@ async function gql(name, variables, opts = {}) {
     return json.data || {};
 }
 
+// Download media (pbs.twimg.com / video.twimg.com are public CDNs, no cookies needed)
+async function fetchMedia(url) {
+    const u = new URL(url);
+    if (!/(^|\.)twimg\.com$/.test(u.hostname)) throw new Error('只能下載 twimg.com 的媒體');
+    for (let i = 0; ; i++) {
+        const res = await fetch(url, { headers: { 'user-agent': UA } });
+        if (res.ok) return res;
+        if (i >= 2 || res.status < 500) throw new Error(`下載失敗：HTTP ${res.status}`);
+        await sleep(1000 * (i + 1));
+    }
+}
+
 const status = () => {
     const a = accounts.active();
     return {
@@ -235,4 +249,4 @@ const status = () => {
 // For debugging: the current API definitions
 const debugDefs = () => defs;
 
-module.exports = { init, gql, status, debugDefs, UA };
+module.exports = { init, gql, fetchMedia, status, debugDefs, UA };

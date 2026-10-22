@@ -234,6 +234,20 @@ td.actions button { margin-left: .25rem; }
 .card label { display: block; margin-bottom: .7rem; }
 .card .step { margin-bottom: .5rem; }
 
+/* ---- Download progress bar ---- */
+#now {
+    display: flex;
+    gap: .8rem;
+    align-items: center;
+    padding: .45rem 1rem;
+    background: var(--accent-soft);
+    border-bottom: 1px solid var(--line);
+    font-size: .9rem;
+}
+#now .now-text { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#now .bar { flex: 1; height: .4rem; background: var(--line); border-radius: 3px; overflow: hidden; min-width: 5rem; }
+#now .bar div { height: 100%; background: var(--accent); width: 0; transition: width .3s; }
+
 pre#log {
     background: var(--panel);
     border: 1px solid var(--line);

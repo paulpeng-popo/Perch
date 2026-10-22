@@ -55,6 +55,7 @@ function renderMedia(t, reg, compact = false) {
         const play = m.type !== 'photo' ? `<span class="play-btn">${ico('play')}</span>` : '';
         return `<div class="media${blur ? ' spoiler' : ''}" data-mi="${mi}"${ratio} title="${esc(m.alt || '')}">
             <img src="${esc(compact || list.length > 1 ? m.thumb : m.preview)}" loading="lazy" alt="">${play}${badge}
+            <button class="media-dl" data-dl-mi="${mi}" title="下載到資料夾">${ico('download')}</button>
         </div>`;
     }).join('');
     return `<div class="media-grid ${cls}">${items}</div>`;
@@ -172,6 +173,7 @@ function renderTweet(t, reg, opts = {}) {
     if (t.retweeted_by) pre.push(`<div class="tw-pre">${ico('retweet')} <a href="#/user/${esc(t.retweeted_by.screen_name)}">${esc(t.retweeted_by.name)}</a> 已轉推</div>`);
     const focal = opts.focal;
     const s = t.stats || {};
+    const hasMedia = (t.media || []).length > 0;
     return `<article class="tw${focal ? ' focal' : ''}${opts.threadLine ? ' thread-line' : ''}" data-id="${esc(t.id)}">
         ${pre.join('')}
         <div class="tw-row">
@@ -195,6 +197,7 @@ function renderTweet(t, reg, opts = {}) {
                     ${stat('views', s.view, '觀看')}
                     ${stat('bookmark', s.bookmark, t.bookmarked ? '書籤（你加過書籤）' : '書籤', t.bookmarked ? 'bm' : '')}
                     <span class="spacer"></span>
+                    ${hasMedia ? `<button class="icon tw-act" data-act="dl" title="下載這則的全部媒體">${ico('download')}</button>` : ''}
                     <button class="icon tw-act" data-act="copy" title="複製連結">${ico('link')}</button>
                     <a class="icon tw-act icon-link" href="https://x.com/${esc(u.screen_name)}/status/${esc(t.id)}" target="_blank" rel="noopener noreferrer" title="在 x.com 開啟">${ico('external')}</a>
                 </div>

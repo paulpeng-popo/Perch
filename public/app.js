@@ -57,6 +57,13 @@ const guard = (fn) => async (...args) => {
 };
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmtSize = (n) => {
+    if (!n) return '-';
+    const u = ['B', 'KB', 'MB', 'GB'];
+    let i = 0;
+    while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; }
+    return `${n.toFixed(i ? 1 : 0)} ${u[i]}`;
+};
 const fmtTime = (s) => (s ? new Date(s).toLocaleString('zh-TW', { hour12: false }) : '-');
 // 1234 → 1,234; from ten thousand and a hundred million up: short form with Chinese units
 function fmtNum(n) {
@@ -177,6 +184,21 @@ async function pollStatus() {
         const s = await api('GET', '/api/status');
         applyAuth(s.auth, s.accounts);
 
+        const now = $('#now');
+        const d = s.downloading;
+        if (d) {
+            let text = `下載中：${d.name}　${fmtSize(d.received)} / ${fmtSize(d.size)}`;
+            if (d.queued) text += `｜排隊 ${d.queued} 個`;
+            text += `｜完成 ${d.done}・略過 ${d.skipped}${d.failed ? `・失敗 ${d.failed}` : ''}`;
+            now.querySelector('.now-text').textContent = text;
+            now.querySelector('.bar div').style.width = d.size ? `${Math.min(100, (d.received / d.size) * 100)}%` : '0';
+            now.classList.remove('hidden');
+        } else {
+            // Downloads just finished: refresh the ✓ marks
+            if (!now.classList.contains('hidden') && typeof refreshDownloaded === 'function') refreshDownloaded();
+            now.classList.add('hidden');
+        }
+
         const logEl = $('#log');
         const lastLine = s.log.length ? s.log[s.log.length - 1].time + s.log.length : '';
         if (!$('#tab-log').classList.contains('hidden') && logEl.dataset.last !== lastLine) {
@@ -186,13 +208,14 @@ async function pollStatus() {
             if (atBottom) logEl.scrollTop = logEl.scrollHeight;
         }
         if (!$('#tab-settings').classList.contains('hidden')) renderXState(s);
+        pollStatus.fast = !!d;
     } catch {
         $('#auth-badge').textContent = '伺服器離線';
         $('#auth-badge').className = 'badge bad';
     }
 }
 (function loop() {
-    pollStatus().finally(() => setTimeout(loop, 4000));
+    pollStatus().finally(() => setTimeout(loop, pollStatus.fast ? 1000 : 4000));
 })();
 
 // ---- Settings ----
@@ -218,6 +241,9 @@ function renderXState(s) {
         : '還沒有呼叫過';
 }
 async function loadSettings() {
+    const s = await api('GET', '/api/settings');
+    $('#set-root').value = s.download_root;
+    $('#set-root').placeholder = `留空 = ${s.default_root}`;
     renderXState(await api('GET', '/api/status'));
 }
 
@@ -303,6 +329,11 @@ document.addEventListener('click', (e) => {
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') $('#acct-menu').classList.add('hidden');
 });
+$('#btn-save-root').addEventListener('click', guard(async () => {
+    await api('PUT', '/api/settings', { download_root: $('#set-root').value });
+    toast('已儲存');
+    await loadSettings();
+}));
 $('#btn-rediscover').addEventListener('click', guard(async () => {
     $('#defs-state').textContent = '解析中…（約 5–20 秒）';
     await api('POST', '/api/rediscover');

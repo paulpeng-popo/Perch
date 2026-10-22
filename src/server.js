@@ -6,6 +6,7 @@ const { log, lines } = require('./log');
 const x = require('./x');
 const api = require('./api');
 const accounts = require('./accounts');
+const downloader = require('./downloader');
 
 const DEFAULT_PORT = Number(process.env.PORT) || 8788;
 const IS_CLI = require.main === module; // run directly with node src/server.js
@@ -69,7 +70,7 @@ async function checkAuth() {
     return authState;
 }
 
-app.get('/api/status', wrap(() => ({ auth: authState, accounts: accounts.publicList(), x: x.status(), log: lines.slice(-200) })));
+app.get('/api/status', wrap(() => ({ auth: authState, accounts: accounts.publicList(), x: x.status(), ...downloader.snapshot(), log: lines.slice(-200) })));
 
 // Accept a whole pasted cookie string: pick out the one we need
 const pick = (s, k) => {
@@ -115,6 +116,15 @@ app.delete('/api/accounts/:key', wrap(async (req) => {
 app.post('/api/check-auth', wrap(() => checkAuth()));
 
 // ---- Settings ----
+app.get('/api/settings', wrap(() => ({
+    download_root: getSetting('download_root', ''),
+    default_root: downloader.root(),
+})));
+
+app.put('/api/settings', wrap((req) => {
+    if (req.body.download_root !== undefined) setSetting('download_root', String(req.body.download_root).trim());
+    log('設定已更新');
+}));
 app.post('/api/rediscover', wrap(async () => {
     await x.init(true);
     return x.status();
@@ -149,6 +159,17 @@ app.get('/api/following', wrap((req) => api.following(cur(req))));
 app.get('/api/lists', wrap(() => api.lists()));
 app.get('/api/list/:id', wrap((req) => api.listInfo(req.params.id)));
 app.get('/api/list/:id/timeline', wrap((req) => api.listTimeline(req.params.id, cur(req))));
+
+// ---- Downloads ----
+app.post('/api/download', wrap((req) => ({ queued: downloader.enqueue(req.body.items) })));
+// Whether these media were already downloaded (shown as ✓); returns booleans in the same order as items
+app.post('/api/downloaded', wrap((req) => (req.body.items || []).slice(0, 500).map((it) => {
+    try {
+        return !!it && downloader.exists(it);
+    } catch {
+        return false;
+    }
+})));
 
 function listen(port) {
     return new Promise((resolve, reject) => {
