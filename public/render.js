@@ -1,4 +1,4 @@
-// HTML for posts and users. All content goes through esc().
+// HTML for posts, users and profiles. All content goes through esc().
 
 const RESERVED = new Set(['home', 'search', 'i', 'explore', 'settings', 'notifications', 'messages', 'compose', 'hashtag', 'intent', 'share', 'tos', 'privacy']);
 
@@ -133,4 +133,45 @@ function renderTweet(t, reg, opts = {}) {
             </div>
         </div>
     </article>`;
+}
+
+function renderUserRow(u) {
+    return `<div class="user-row" data-user="${esc(u.screen_name)}">
+        ${avatarHtml(u)}
+        <div class="c-body">
+            <div class="c-title">${esc(u.name)}${verifiedIcon(u)}${lockIcon(u)}</div>
+            <div class="muted small-text">@${esc(u.screen_name)}${u.follows_you ? ' <span class="c-tag">跟隨你</span>' : ''}</div>
+            ${u.bio && u.bio.length ? `<div class="user-bio clamp">${renderText(u.bio)}</div>` : ''}
+        </div>
+    </div>`;
+}
+
+function renderProfile(p) {
+    const joined = p.created_at ? `${new Date(p.created_at).getFullYear()}年${new Date(p.created_at).getMonth() + 1}月加入` : '';
+    const tags = [];
+    if (p.followed) tags.push('<span class="c-tag">追蹤中</span>');
+    if (p.follows_you) tags.push('<span class="c-tag">跟隨你</span>');
+    // Old-format banner URLs need a size appended; new-format ones may already have it
+    const bannerUrl = p.banner && (/\/\d+x\d+$/.test(p.banner) || /\?/.test(p.banner) ? p.banner : `${p.banner}/1500x500`);
+    const banner = bannerUrl ? `<img class="pf-banner-img" src="${esc(bannerUrl)}" alt="" onerror="this.remove()">` : '';
+    return `<div class="profile">
+        <div class="pf-banner">${banner}</div>
+        <div class="pf-main">
+            <span class="avatar pf-avatar" data-avatar="${esc(p.avatar_large)}">${p.avatar_large ? `<img src="${esc(p.avatar_large)}" alt="">` : ''}</span>
+            <div class="pf-name"><b>${esc(p.name)}</b>${verifiedIcon(p)}${lockIcon(p)}</div>
+            <div class="muted">@${esc(p.screen_name)} ${tags.join(' ')}</div>
+            ${p.bio.length ? `<div class="pf-bio">${renderText(p.bio)}</div>` : ''}
+            <div class="pf-meta muted">
+                ${p.location ? `<span>${ico('home')} ${esc(p.location)}</span>` : ''}
+                ${p.url ? `<span>${ico('link')} ${linkHtml(p.url.href, p.url.v)}</span>` : ''}
+                ${joined ? `<span>${ico('calendar')} ${esc(joined)}</span>` : ''}
+            </div>
+            <div class="pf-counts">
+                <span><b>${fmtNum(p.following_count)}</b> <span class="muted">追蹤中</span></span>
+                <span><b>${fmtNum(p.followers)}</b> <span class="muted">跟隨者</span></span>
+                <span><b>${fmtNum(p.tweets)}</b> <span class="muted">貼文</span></span>
+                <span><b>${fmtNum(p.media_count)}</b> <span class="muted">媒體</span></span>
+            </div>
+        </div>
+    </div>`;
 }

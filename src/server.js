@@ -122,6 +122,8 @@ app.post('/api/rediscover', wrap(async () => {
 // ---- Browsing (read-only) ----
 const cur = (req) => (req.query.cursor ? String(req.query.cursor) : undefined);
 app.get('/api/home', wrap((req) => api.home(req.query.kind, cur(req))));
+app.get('/api/user/:name', wrap((req) => api.userByName(req.params.name)));
+app.get('/api/user/:id/timeline', wrap((req) => api.userTimeline(req.params.id, req.query.tab, cur(req))));
 
 function listen(port) {
     return new Promise((resolve, reject) => {

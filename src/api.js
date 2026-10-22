@@ -21,6 +21,13 @@ const resetViewer = (key) => {
     else for (const k of Object.keys(viewerCache)) delete viewerCache[k];
 };
 
+async function userByName(screenName) {
+    const d = await x.gql('UserByScreenName', { screen_name: String(screenName).replace(/^@/, ''), withGrokTranslatedBio: false });
+    const u = parse.profile(d.user);
+    if (!u) throw new Error(`找不到使用者 @${screenName}`);
+    return u;
+}
+
 const withCursor = (vars, cursor) => (cursor ? { ...vars, cursor } : vars);
 
 async function home(kind, cursor) {
@@ -37,4 +44,16 @@ async function home(kind, cursor) {
     return parse.timeline(await x.gql(latest ? 'HomeLatestTimeline' : 'HomeTimeline', withCursor(vars, cursor)));
 }
 
-module.exports = { viewer, resetViewer, home };
+const USER_TABS = {
+    tweets: ['UserTweets', { includePromotedContent: true, withQuickPromoteEligibilityTweetFields: true, withVoice: true }],
+    replies: ['UserTweetsAndReplies', { includePromotedContent: true, withCommunity: true, withVoice: true }],
+    media: ['UserMedia', { includePromotedContent: false, withClientEventToken: false, withBirdwatchNotes: false, withVoice: true }],
+    likes: ['Likes', { includePromotedContent: false, withClientEventToken: false, withBirdwatchNotes: false, withVoice: true }],
+};
+
+async function userTimeline(userId, tab, cursor) {
+    const [op, extra] = USER_TABS[tab] || USER_TABS.tweets;
+    return parse.timeline(await x.gql(op, withCursor({ userId: String(userId), count: PAGE, ...extra }, cursor)));
+}
+
+module.exports = { viewer, resetViewer, userByName, home, userTimeline };

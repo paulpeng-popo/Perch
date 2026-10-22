@@ -5,13 +5,17 @@ const listEl = $('#b-list');
 const footEl = $('#b-foot');
 const states = new Map(); // hash -> each page's loaded content and scroll position
 let state = null;
+let me = null; // the logged-in account { screen_name, id }
 
+const USER_TABS = [['tweets', '貼文'], ['replies', '回覆'], ['media', '媒體'], ['likes', '喜歡']];
 const HOME_TABS = [['following', '追蹤中'], ['foryou', '為你推薦']];
 
 function parseRoute(hash) {
     const parts = (hash || '').replace(/^#\/?/, '').split('/');
     const [kind, a, ...rest] = parts;
     if (kind === 'home') return { kind, sub: a === 'foryou' ? 'foryou' : 'following' };
+    if (kind === 'me') return { kind };
+    if (kind === 'user' && a) return { kind, name: a, tab: USER_TABS.some(([k]) => k === rest[0]) ? rest[0] : 'tweets' };
     return null;
 }
 
@@ -24,6 +28,13 @@ async function fetchPage(st, cursor) {
         return api('GET', qs ? `${base}?${qs}` : base);
     };
     if (r.kind === 'home') return q('/api/home', `kind=${r.sub}`);
+    if (r.kind === 'user') {
+        if (!st.profile) {
+            st.profile = await api('GET', `/api/user/${encodeURIComponent(r.name)}`);
+            renderHead();
+        }
+        return q(`/api/user/${st.profile.id}/timeline`, `tab=${r.tab}`);
+    }
     throw new Error('不認得的頁面');
 }
 
@@ -74,7 +85,16 @@ function newState(hash, route) {
 
 async function openRoute(hash) {
     if (state) state.scroll = feedEl.scrollTop;
-    const route = parseRoute(hash);
+    let route = parseRoute(hash);
+    if (route && route.kind === 'me') {
+        if (!me) {
+            $('#b-empty').classList.remove('hidden');
+            $('#b-view').classList.add('hidden');
+            return;
+        }
+        location.replace(`#/user/${me.screen_name}`);
+        return;
+    }
     highlightSide(hash);
     if (!route) {
         state = null;
@@ -87,7 +107,7 @@ async function openRoute(hash) {
     $('.browse').classList.add('open');
     state = states.get(hash) || newState(hash, route);
     states.set(hash, state);
-    if (pendingFromSide && pendingFromSide === hash) state.fromSide = true;
+    if (pendingFromSide && (pendingFromSide === hash || pendingFromSide === '#/me')) state.fromSide = true;
     pendingFromSide = null;
     // Keep only the 30 most recent pages
     if (states.size > 30) states.delete(states.keys().next().value);
@@ -112,6 +132,15 @@ function renderHead() {
         avatar = `<span class="avatar big icon-avatar">${ico(r.sub === 'foryou' ? 'sparkle' : 'home')}</span>`;
         tabs = HOME_TABS.map(([k, v]) => [`#/home/${k}`, v]);
         cur = `#/home/${r.sub}`;
+    } else if (r.kind === 'user') {
+        const p = st.profile;
+        title = p ? p.name : `@${r.name}`;
+        sub = p ? `@${p.screen_name}・${fmtNum(p.tweets)} 則貼文` : '載入中…';
+        avatar = p ? avatarHtml(p, 'big') : '<span class="avatar big"></span>';
+        xUrl = `https://x.com/${r.name}`;
+        const isMe = me && p && p.id === me.id;
+        tabs = USER_TABS.filter(([k]) => k !== 'likes' || isMe).map(([k, v]) => [`#/user/${r.name}${k === 'tweets' ? '' : `/${k}`}`, v]);
+        cur = `#/user/${r.name}${r.tab === 'tweets' ? '' : `/${r.tab}`}`;
     }
     $('#b-title').textContent = title;
     $('#b-sub').textContent = sub;
@@ -142,13 +171,17 @@ function tweetsHtml(list, all) {
 function rerenderFeed() {
     if (!state) return;
     state.media = [];
-    listEl.innerHTML = tweetsHtml(state.tweets, state.tweets);
+    const top = [];
+    if (state.route.kind === 'user' && state.profile) top.push(renderProfile(state.profile));
+    $('#b-top').innerHTML = top.join('');
+    listEl.innerHTML = tweetsHtml(state.tweets, state.tweets) + state.users.map(renderUserRow).join('');
     renderFoot();
     afterRender();
 }
 
 function appendRender(tweets, users) {
-    listEl.insertAdjacentHTML('beforeend', tweetsHtml(tweets, state.tweets));
+    if (state.route.kind === 'user' && state.profile && !$('#b-top').innerHTML) $('#b-top').innerHTML = renderProfile(state.profile);
+    listEl.insertAdjacentHTML('beforeend', tweetsHtml(tweets, state.tweets) + users.map(renderUserRow).join(''));
     afterRender();
 }
 
@@ -213,6 +246,14 @@ listEl.addEventListener('click', guard(async (e) => {
         }
         return;
     }
+    if (e.target.closest('a, button, input, video, .poll')) return;
+    // Don't navigate while selecting text
+    if (String(window.getSelection())) return;
+    const row = e.target.closest('.user-row');
+    if (row) {
+        location.hash = `#/user/${row.dataset.user}`;
+        return;
+    }
 }));
 
 $('#b-reload').addEventListener('click', () => {
@@ -258,7 +299,8 @@ document.addEventListener('keydown', (e) => {
 function highlightSide(hash) {
     document.querySelectorAll('#b-side li[data-route]').forEach((li) => {
         const r = li.dataset.route;
-        li.classList.toggle('active', hash === r || (hash || '').startsWith(`${r}/`));
+        const meHash = me ? `#/user/${me.screen_name}` : null;
+        li.classList.toggle('active', hash === r || (hash || '').startsWith(`${r}/`) || (r === '#/me' && meHash && (hash === meHash || (hash || '').startsWith(`${meHash}/`))));
     });
 }
 
@@ -283,6 +325,7 @@ window.addEventListener('hashchange', () => {
 
 // After login or an account switch: reload the timeline with the new account
 function onLogin(switched = false) {
+    me = authState && authState.user;
     // Pages loaded earlier belong to another account (or failed before login): drop them all and refetch
     states.clear();
     state = null;
