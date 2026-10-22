@@ -66,7 +66,7 @@ async function thread(id, cursor) {
         withQuickPromoteEligibilityTweetFields: true,
         withBirdwatchNotes: true,
         withVoice: true,
-    }, cursor));
+    }, cursor), { toggles: { withArticleRichContentState: true, withArticlePlainText: true } }); // full long-form article content
     return parse.timeline(d);
 }
 

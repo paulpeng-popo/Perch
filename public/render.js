@@ -75,6 +75,68 @@ function renderCard(c) {
     </a>`;
 }
 
+// Articles: a card in timelines; the full text on the focal post of a thread
+function renderArticleCard(a, tid) {
+    return `<a class="art-card" href="#/tweet/${esc(tid)}">
+        ${a.cover ? `<img src="${esc(a.cover)}" loading="lazy" alt="">` : ''}
+        <div class="art-card-body"><div class="art-tag">${ico('file')} 長文</div><div class="art-title">${esc(a.title)}</div>${a.preview ? `<div class="muted art-preview">${esc(a.preview)}</div>` : ''}</div>
+    </a>`;
+}
+
+function articleSegsHtml(segs) {
+    return (segs || []).map((s) => {
+        let h = esc(s.v);
+        if (s.b) h = `<b>${h}</b>`;
+        if (s.i) h = `<i>${h}</i>`;
+        if (s.s) h = `<s>${h}</s>`;
+        if (s.href) h = linkHtml(s.href, s.v).replace(`>${esc(s.v)}<`, `>${h}<`);
+        return h;
+    }).join('');
+}
+
+function renderArticleFull(a, reg, t) {
+    const out = [];
+    let list = null; // consecutive list items are merged into one ul / ol
+    const flush = () => {
+        if (list) out.push(`<${list.tag}>${list.items.join('')}</${list.tag}>`);
+        list = null;
+    };
+    let mediaIdx = 100; // article images are numbered from 101 so file names don't clash with the post's own media
+    for (const b of a.blocks || []) {
+        const tag = b.type === 'unordered-list-item' ? 'ul' : (b.type === 'ordered-list-item' ? 'ol' : null);
+        if (tag) {
+            if (!list || list.tag !== tag) {
+                flush();
+                list = { tag, items: [] };
+            }
+            list.items.push(`<li>${articleSegsHtml(b.segs)}</li>`);
+            continue;
+        }
+        flush();
+        if (b.type === 'media') {
+            out.push(`<div class="art-media">${b.media.map((m) => {
+                const mi = reg(m, t, mediaIdx++);
+                return `<div class="media" data-mi="${mi}"><img src="${esc(m.preview)}" loading="lazy" alt="">${m.type !== 'photo' ? `<span class="play-btn">${ico('play')}</span>` : ''}</div>`;
+            }).join('')}</div>`);
+        } else if (b.type === 'divider') out.push('<hr>');
+        else if (b.type === 'tweet') out.push(`<a class="art-embed" href="#/tweet/${esc(b.id)}">${ico('chat')} 嵌入的推文</a>`);
+        else if (b.type === 'header-one') out.push(`<h2>${articleSegsHtml(b.segs)}</h2>`);
+        else if (b.type === 'header-two' || b.type === 'header-three') out.push(`<h3>${articleSegsHtml(b.segs)}</h3>`);
+        else if (b.type === 'blockquote') out.push(`<blockquote>${articleSegsHtml(b.segs)}</blockquote>`);
+        else if (b.type === 'code-block') out.push(`<pre>${b.segs.map((s) => esc(s.v)).join('')}</pre>`);
+        else {
+            const html = articleSegsHtml(b.segs);
+            out.push(html.trim() ? `<p>${html}</p>` : '');
+        }
+    }
+    flush();
+    return `<div class="article">
+        ${a.cover ? `<img class="art-cover" src="${esc(a.cover)}" alt="">` : ''}
+        <h1 class="art-h1">${esc(a.title)}</h1>
+        ${out.join('')}
+    </div>`;
+}
+
 function tweetHead(t, full = false) {
     const u = t.user || {};
     const time = full
@@ -118,6 +180,7 @@ function renderTweet(t, reg, opts = {}) {
                 ${t.reply_to && !opts.inThread ? `<div class="muted tw-reply">回覆 <a href="#/user/${esc(t.reply_to)}">@${esc(t.reply_to)}</a></div>` : ''}
                 ${t.text.length ? `<div class="tw-text${focal ? ' big' : ''}">${renderText(t.text)}</div>` : ''}
                 ${renderMedia(t, reg)}
+                ${t.article ? (focal && t.article.blocks ? renderArticleFull(t.article, reg, t) : renderArticleCard(t.article, t.id)) : ''}
                 ${renderCard(t.card)}
                 ${renderQuote(t.quote, reg)}
                 ${focal && (s.retweet || s.quote) ? `<div class="tw-links">

@@ -187,6 +187,85 @@ function card(c) {
     };
 }
 
+// Long-form posts (X Articles): timelines only have title, summary and cover; threads also carry content_state (Draft.js blocks)
+function articleSegs(text, styles, entities, entityMap) {
+    const cuts = new Set([0, text.length]);
+    const ranges = [];
+    for (const s of styles || []) ranges.push({ from: s.offset, to: s.offset + s.length, style: s.style });
+    for (const e of entities || []) {
+        const ent = entityMap[String(e.key)];
+        if (ent && ent.type === 'LINK' && ent.data && ent.data.url) ranges.push({ from: e.offset, to: e.offset + e.length, href: ent.data.url });
+    }
+    for (const r of ranges) {
+        cuts.add(Math.max(0, Math.min(text.length, r.from)));
+        cuts.add(Math.max(0, Math.min(text.length, r.to)));
+    }
+    const pts = [...cuts].sort((a, b) => a - b);
+    const out = [];
+    for (let i = 0; i < pts.length - 1; i++) {
+        const [a, b] = [pts[i], pts[i + 1]];
+        if (a === b) continue;
+        const on = ranges.filter((r) => r.from <= a && r.to >= b);
+        const seg = { v: text.slice(a, b) };
+        if (on.some((r) => r.style === 'Bold')) seg.b = 1;
+        if (on.some((r) => r.style === 'Italic')) seg.i = 1;
+        if (on.some((r) => r.style === 'Strikethrough')) seg.s = 1;
+        const link = on.find((r) => r.href);
+        if (link) seg.href = link.href;
+        out.push(seg);
+    }
+    return out;
+}
+
+function articleMedia(mi) {
+    const info = (mi && mi.media_info) || {};
+    if (info.__typename === 'ApiVideo' || info.variants) {
+        const v = (info.variants || []).filter((x) => /mp4/.test(x.content_type || '')).sort((a, b) => (b.bit_rate || b.bitrate || 0) - (a.bit_rate || a.bitrate || 0))[0];
+        const poster = (info.preview_image && info.preview_image.original_img_url) || '';
+        if (v) return { type: 'video', url: v.url, thumb: poster, preview: poster, ext: 'mp4', w: 0, h: 0 };
+    }
+    if (!info.original_img_url) return null;
+    const url = info.original_img_url;
+    const ext = (/\.(\w+)(?:\?|$)/.exec(url) || [])[1] || 'jpg';
+    return { type: 'photo', url, thumb: url, preview: url, ext, w: info.original_img_width || 0, h: info.original_img_height || 0 };
+}
+
+function article(r) {
+    const a = r && r.article && r.article.article_results && r.article.article_results.result;
+    if (!a || !a.title) return null;
+    const out = {
+        id: a.rest_id,
+        title: a.title,
+        preview: a.preview_text || '',
+        cover: (a.cover_media && a.cover_media.media_info && a.cover_media.media_info.original_img_url) || '',
+        published: a.metadata && a.metadata.first_published_at_secs ? new Date(a.metadata.first_published_at_secs * 1000).toISOString() : null,
+    };
+    const cs = a.content_state;
+    if (cs && Array.isArray(cs.blocks)) {
+        const entityMap = {};
+        for (const e of cs.entityMap || []) entityMap[String(e.key)] = e.value;
+        const media = {};
+        for (const m of a.media_entities || []) media[String(m.media_id)] = m;
+        out.blocks = cs.blocks.map((b) => {
+            if (b.type === 'atomic') {
+                const ent = (b.entityRanges || []).map((e) => entityMap[String(e.key)]).find(Boolean);
+                if (ent && ent.type === 'MEDIA') {
+                    const items = (ent.data && ent.data.mediaItems) || [];
+                    const list = items.map((it) => articleMedia(media[String(it.mediaId || it.media_id || it.localMediaId)])).filter(Boolean);
+                    if (list.length) return { type: 'media', media: list };
+                }
+                if (ent && ent.type === 'DIVIDER') return { type: 'divider' };
+                if (ent && ent.type === 'TWEET' && ent.data && ent.data.tweetId) return { type: 'tweet', id: String(ent.data.tweetId) };
+                return null;
+            }
+            return { type: b.type, segs: articleSegs(b.text || '', b.inlineStyleRanges, b.entityRanges, entityMap) };
+        }).filter(Boolean);
+    } else if (a.plain_text) {
+        out.blocks = a.plain_text.split(/\n+/).map((t) => ({ type: 'unstyled', segs: [{ v: t }] }));
+    }
+    return out;
+}
+
 function unwrap(r) {
     if (!r) return null;
     if (r.result) r = r.result;
@@ -216,7 +295,9 @@ function tweet(r, depth = 0) {
     const quoted = depth === 0 && r.quoted_status_result ? tweet(r.quoted_status_result, 1) : null;
     // The quoted post is shown separately, so drop the quote link at the end of the text
     const qLink = l.quoted_status_permalink && l.quoted_status_permalink.expanded;
-    const shown = text.filter((s) => !(s.t === 'url' && quoted && qLink && s.href === qLink));
+    const art = article(r);
+    // The article itself is shown separately: drop links pointing to it
+    const shown = text.filter((s) => !(s.t === 'url' && ((quoted && qLink && s.href === qLink) || (art && /\/i\/article\//.test(s.href)))));
     return {
         id: r.rest_id,
         user: author,
@@ -224,7 +305,8 @@ function tweet(r, depth = 0) {
         text: shown,
         lang: l.lang,
         media: mediaList,
-        card: card(r.card),
+        card: art ? null : card(r.card),
+        article: art,
         quote: quoted,
         reply_to: l.in_reply_to_screen_name || null,
         reply_to_id: l.in_reply_to_status_id_str || null,

@@ -156,6 +156,31 @@
 .tw-links a b { color: var(--text); }
 .tw-links a:hover { text-decoration: underline; }
 
+/* ---- Articles ---- */
+.art-card { display: block; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; margin: .4rem 0 .2rem; color: inherit; text-decoration: none; }
+.art-card:hover { background: var(--panel-2); }
+.art-card img { width: 100%; aspect-ratio: 5 / 2; object-fit: cover; display: block; border-bottom: 1px solid var(--line); }
+.art-card-body { padding: .55rem .75rem; }
+.art-tag { font-size: .75rem; color: var(--accent); font-weight: 600; display: flex; align-items: center; gap: .25rem; }
+.art-tag .ico { width: .9rem; height: .9rem; }
+.art-title { font-weight: 700; font-size: 1.05rem; margin: .1rem 0; }
+.art-preview { font-size: .9rem; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+.article { margin: .5rem 0; line-height: 1.75; overflow-wrap: anywhere; cursor: auto; }
+.art-cover { width: 100%; border-radius: var(--radius); display: block; margin-bottom: .6rem; }
+.art-h1 { font-size: 1.5rem; line-height: 1.35; margin: .3rem 0 .8rem; }
+.article h2 { font-size: 1.25rem; margin: 1.2rem 0 .4rem; }
+.article h3 { font-size: 1.1rem; margin: 1rem 0 .3rem; }
+.article p { margin: 0 0 .8rem; }
+.article blockquote { border-left: 3px solid var(--accent); margin: 0 0 .8rem; padding: .1rem 0 .1rem .8rem; color: var(--muted); }
+.article pre { background: var(--panel-2); border-radius: 8px; padding: .6rem .8rem; white-space: pre-wrap; font-size: .88rem; }
+.article ul, .article ol { margin: 0 0 .8rem; padding-left: 1.4rem; }
+.article hr { border: none; border-top: 1px solid var(--line); margin: 1.2rem 0; }
+.art-media { display: grid; gap: 4px; margin: .4rem 0 1rem; }
+.art-media .media { border-radius: 10px; overflow: hidden; min-height: 0; }
+.art-media .media img { width: 100%; max-height: none; object-fit: contain; }
+.art-embed { display: inline-flex; gap: .3rem; align-items: center; border: 1px solid var(--line); border-radius: 999px; padding: .2rem .8rem; margin-bottom: .8rem; text-decoration: none; }
+.art-embed .ico { width: 1rem; height: 1rem; }
+
 .logo-img { width: 1.9rem; height: 1.9rem; border-radius: 22%; display: block; }
 .manual-cookie { margin: .6rem 0; }
 .manual-cookie summary { cursor: pointer; color: var(--muted); margin-bottom: .5rem; }
