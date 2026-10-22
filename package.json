@@ -9,7 +9,9 @@
     "repository": "github:paulpeng-popo/Perch",
     "scripts": {
         "start": "node --no-warnings=ExperimentalWarning src/server.js --open",
-        "serve": "node --no-warnings=ExperimentalWarning src/server.js"
+        "serve": "node --no-warnings=ExperimentalWarning src/server.js",
+        "background": "node src/background.js",
+        "stop": "node src/background.js stop"
     },
     "engines": {
         "node": ">=20"

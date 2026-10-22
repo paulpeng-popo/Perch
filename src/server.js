@@ -1,7 +1,9 @@
+const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
 const express = require('express');
-const { getSetting, setSetting } = require('./store');
+const { DATA_DIR, getSetting, setSetting } = require('./store');
 const { log, lines } = require('./log');
 const x = require('./x');
 const api = require('./api');
@@ -11,6 +13,7 @@ const update = require('./update');
 const downloader = require('./downloader');
 
 const DEFAULT_PORT = Number(process.env.PORT) || 8788;
+const PID_FILE = path.join(DATA_DIR, 'server.pid');
 const IS_CLI = require.main === module; // run directly with node src/server.js
 
 // Open a URL in the default browser (Windows / macOS / Linux)
@@ -24,6 +27,23 @@ function openBrowser(url) {
     } catch { /* can't open a browser: fine, the URL is already printed */ }
 }
 
+// Log why we exit and handle Ctrl+C.
+if (IS_CLI) {
+    process.on('exit', (code) => {
+        // only remove the PID file we wrote ourselves
+        try {
+            if (fs.readFileSync(PID_FILE, 'utf8').trim().split(/\s+/)[0] === String(process.pid)) fs.rmSync(PID_FILE);
+        } catch { /* no PID file */ }
+        console.log(`[${new Date().toISOString()}] Server exits with code ${code}`);
+    });
+    // SIGBREAK exists only on Windows, SIGHUP only on macOS / Linux: register only the ones this OS knows
+    for (const sig of ['SIGINT', 'SIGTERM', 'SIGBREAK', 'SIGHUP'].filter((s) => s in os.constants.signals)) {
+        process.on(sig, () => {
+            console.log(`[${new Date().toISOString()}] Received ${sig}, exiting`);
+            process.exit(0);
+        });
+    }
+}
 process.on('uncaughtException', (e) => {
     console.error(`[${new Date().toISOString()}] Unhandled error:`, e && e.stack ? e.stack : e);
 });
@@ -119,6 +139,15 @@ app.delete('/api/accounts/:key', wrap(async (req) => {
 }));
 
 app.post('/api/check-auth', wrap(() => checkAuth()));
+
+// For npm run stop: shut down cleanly (removes the PID file, writes the log).
+// Requires a custom header, which pages on other sites cannot send cross-origin.
+app.post('/api/shutdown', (req, res) => {
+    if (!IS_CLI || req.get('x-perch') !== 'stop') return res.status(403).end();
+    log('收到停止指令');
+    res.json({ ok: true });
+    setTimeout(() => process.exit(0), 100);
+});
 
 // ---- Settings ----
 app.get('/api/settings', wrap(() => ({
@@ -229,7 +258,9 @@ async function start() {
 if (IS_CLI) {
     const url = `http://127.0.0.1:${DEFAULT_PORT}`;
     start()
-        .then(() => {
+        .then(({ port }) => {
+            // "pid port": npm run stop needs to know which port to send the stop request to
+            fs.writeFileSync(PID_FILE, `${process.pid} ${port}`);
             if (process.argv.includes('--open')) openBrowser(url);
         })
         .catch((e) => {
