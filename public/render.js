@@ -27,6 +27,7 @@ function renderText(segs) {
         return esc(s.v);
     }).join('');
 }
+const plainText = (segs) => (segs || []).map((s) => s.v).join('');
 
 const verifiedIcon = (u) => (u && u.verified ? `<span class="verified" title="已認證">${ico('verified')}</span>` : '');
 const lockIcon = (u) => (u && u.protected ? `<span class="mark" title="私密帳號">${ico('lock')}</span>` : '');

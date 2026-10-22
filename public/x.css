@@ -112,7 +112,11 @@
 .media img.broken, .wall-item img.broken { visibility: hidden; }
 .play-btn { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 3.2rem; height: 3.2rem; border-radius: 50%; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 4px rgb(255 255 255 / .8); pointer-events: none; }
 .play-btn .ico { width: 1.4rem; height: 1.4rem; fill: currentColor; margin-left: .15rem; }
+.hover-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #000; }
+.media:has(.hover-video) .play-btn, .wall-item:has(.hover-video) .media-badge { display: none; }
 .media.spoiler::after, .wall-item.spoiler::after { content: "敏感內容・點一下顯示"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #fff; font-size: .85rem; font-weight: 600; text-shadow: 0 1px 3px #000; pointer-events: none; }
+.wall-item.spoiler img { filter: blur(22px); }
+#b-list.wall { padding: 4px; }
 
 .link-card { display: flex; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; margin: .4rem 0 .2rem; color: inherit; text-decoration: none; }
 .link-card:hover { background: var(--panel-2); }

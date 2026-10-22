@@ -106,7 +106,8 @@ new IntersectionObserver((entries) => {
 
 // ---- Rendering ----
 function newState(hash, route) {
-    return { hash, route, tweets: [], users: [], cursor: null, done: false, loading: false, empty: 0, error: null, scroll: 0, media: [] };
+    const wall = (route.kind === 'user' && route.tab === 'media') || (route.kind === 'search' && route.product === 'media') || (route.kind === 'multi' && route.media);
+    return { hash, route, tweets: [], users: [], cursor: null, done: false, loading: false, empty: 0, error: null, scroll: 0, wall, media: [] };
 }
 
 async function openRoute(hash) {
@@ -208,12 +209,14 @@ function renderHead() {
     $('#b-sub').textContent = sub;
     $('#b-avatar').outerHTML = avatar.replace('<span class="avatar', '<span id="b-avatar" class="avatar');
     $('#b-open-x').href = xUrl;
+    $('#b-wall').classList.toggle('on', st.wall);
+    $('#b-wall').classList.toggle('hidden', r.kind === 'search' && r.product === 'people');
     const tabsEl = $('#b-tabs');
     tabsEl.classList.toggle('hidden', !tabs);
     if (tabs) tabsEl.innerHTML = tabs.map(([h, v]) => `<a href="${esc(h)}" class="${h === cur ? 'active' : ''}">${esc(v)}</a>`).join('');
 }
 
-// Register media in this page's list; returns its index
+// Register media in the viewer's list; returns its index
 function register(m, t, i) {
     state.media.push({ m, t, i });
     return state.media.length - 1;
@@ -229,6 +232,14 @@ function visible(t) {
 
 function tweetsHtml(list, all) {
     const r = state.route;
+    if (state.wall) {
+        return list.filter(visible).flatMap((t) => (t.media || []).map((m, i) => {
+            const mi = register(m, t, i);
+            const badge = m.type === 'video' ? `<span class="media-badge">${ico('play')} ${m.duration ? fmtDur(m.duration) : ''}</span>` : (m.type === 'gif' ? '<span class="media-badge">GIF</span>' : '');
+            const blur = prefs.blurSensitive && (t.sensitive || m.sensitive) ? ' spoiler' : '';
+            return `<div class="wall-item${blur}" data-mi="${mi}"><img src="${esc(m.thumb)}" loading="lazy" alt="">${badge}</div>`;
+        })).join('');
+    }
     const shown = list.filter(visible);
     return shown.map((t) => {
         const idx = all.indexOf(t);
@@ -252,6 +263,7 @@ function rerenderFeed() {
     if (state.route.kind === 'user' && state.profile) top.push(renderProfile(state.profile));
     if (state.route.kind === 'list' && state.list) top.push(renderListHead(state.list));
     $('#b-top').innerHTML = top.join('');
+    listEl.className = state.wall ? 'wall' : '';
     listEl.innerHTML = tweetsHtml(state.tweets, state.tweets) + state.users.map(renderUserRow).join('');
     renderFoot();
     afterRender();
@@ -325,6 +337,7 @@ listEl.addEventListener('click', guard(async (e) => {
             media.classList.remove('spoiler');
             return;
         }
+        return openViewer(Number(media.dataset.mi));
     }
     const act = e.target.closest('[data-act]');
     if (act) {
@@ -358,9 +371,30 @@ listEl.addEventListener('click', guard(async (e) => {
     }
 }));
 
+// Play GIFs on hover (muted)
+listEl.addEventListener('mouseover', (e) => {
+    const media = e.target.closest('.media[data-mi], .wall-item[data-mi]');
+    if (!media || media.querySelector('video') || media.classList.contains('spoiler')) return;
+    const it = state.media[Number(media.dataset.mi)];
+    if (!it || it.m.type !== 'gif' || !it.m.url) return;
+    const v = document.createElement('video');
+    Object.assign(v, { src: it.m.url, muted: true, loop: true, autoplay: true, playsInline: true });
+    v.className = 'hover-video';
+    media.appendChild(v);
+    media.addEventListener('mouseleave', () => v.remove(), { once: true });
+});
+
+$('#b-wall').addEventListener('click', () => {
+    if (!state) return;
+    state.wall = !state.wall;
+    $('#b-wall').classList.toggle('on', state.wall);
+    rerenderFeed();
+    feedEl.scrollTop = 0;
+});
 $('#b-reload').addEventListener('click', () => {
     if (!state) return;
     const fresh = newState(state.hash, state.route);
+    fresh.wall = state.wall;
     states.set(state.hash, fresh);
     state = fresh;
     renderHead();
@@ -381,9 +415,9 @@ $('#b-back').addEventListener('click', () => {
     else location.hash = '#/home/following';
 });
 
-// j / k next / previous post, r refresh
+// j / k next / previous post, r refresh, g media wall
 document.addEventListener('keydown', (e) => {
-    if ((e.target.closest && e.target.closest('input, textarea, select')) || e.ctrlKey || e.altKey || e.metaKey) return;
+    if ((e.target.closest && e.target.closest('input, textarea, select')) || e.ctrlKey || e.altKey || e.metaKey || $('#viewer').open) return;
     if ($('#tab-browse').classList.contains('hidden') || !state) return;
     if (e.key === 'j' || e.key === 'k') {
         const items = [...listEl.querySelectorAll('.tw')];
@@ -394,6 +428,7 @@ document.addEventListener('keydown', (e) => {
         else target = items[Math.max(0, (idx === -1 ? items.length : idx) - 2)];
         if (target) target.scrollIntoView({ block: 'start' });
     } else if (e.key === 'r') $('#b-reload').click();
+    else if (e.key === 'g') $('#b-wall').click();
     else return;
     e.preventDefault();
 });

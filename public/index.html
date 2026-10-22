@@ -58,6 +58,8 @@
                     <ul class="tips">
                         <li>只讀不寫：不會按讚、轉推、追蹤，也不會把通知標成已讀</li>
                         <li>左上搜尋框按 <kbd>Enter</kbd> 搜尋推文，輸入 <kbd>@帳號</kbd> 直接開個人檔案</li>
+                        <li>點圖片後用 <kbd>←</kbd> <kbd>→</kbd> 切換、<kbd>空白鍵</kbd> 幻燈片</li>
+                        <li>右上 <span data-icon="grid"></span> 切換媒體牆，一次看整個時間軸的圖片和影片</li>
                     </ul>
                 </div>
                 <div id="b-view" class="hidden">
@@ -70,6 +72,7 @@
                             <div id="b-sub" class="muted"></div>
                         </div>
                         <div class="head-tools">
+                            <button id="b-wall" class="icon" data-icon="grid" title="媒體牆（G）"></button>
                             <button id="b-reload" class="icon" data-icon="refresh" title="重新整理（R）"></button>
                             <a id="b-open-x" class="icon icon-link" data-icon="external" title="在 x.com 開啟" target="_blank" rel="noopener noreferrer"></a>
                         </div>
@@ -143,10 +146,30 @@
     <div class="actions" id="ask-buttons"></div>
 </dialog>
 
+<!-- Media viewer -->
+<dialog id="viewer">
+    <div class="viewer-tools">
+        <span id="viewer-count" class="v-count"></span>
+        <span id="viewer-name" class="v-name"></span>
+        <span class="spacer"></span>
+        <button id="viewer-zoom" class="v-btn" data-icon="zoom" title="縮放（Z）"></button>
+        <button id="viewer-play" class="v-btn" data-icon="play" title="幻燈片（空白鍵）"></button>
+        <button id="viewer-goto" class="v-btn" data-icon="goto" title="開啟這則推文"></button>
+        <a id="viewer-save" class="v-btn" data-icon="external" title="在新分頁開原檔" target="_blank" rel="noopener noreferrer"></a>
+        <button id="viewer-close" class="v-btn" data-icon="close" title="關閉（Esc）"></button>
+    </div>
+    <button id="viewer-prev" class="v-nav prev" data-icon="left" title="上一張（←）"></button>
+    <div id="viewer-body"></div>
+    <button id="viewer-next" class="v-nav next" data-icon="right" title="下一張（→）"></button>
+    <div id="viewer-caption" class="v-caption hidden"></div>
+    <div id="viewer-strip" class="v-strip"></div>
+</dialog>
+
 <div id="toast"></div>
 <script src="icons.js"></script>
 <script src="app.js"></script>
 <script src="render.js"></script>
 <script src="feed.js"></script>
+<script src="viewer.js"></script>
 </body>
 </html>
