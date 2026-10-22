@@ -14,18 +14,59 @@
 <header>
     <h1><img class="logo-img" src="icon.png" alt=""> <span class="app-name">Perch</span></h1>
     <nav>
+        <button data-tab="log" data-icon="log" title="日誌">日誌</button>
         <button data-tab="settings" data-icon="settings" class="active" title="設定">設定</button>
     </nav>
     <div class="header-tools">
         <button id="font-down" class="icon text-icon" title="字小一點（Ctrl+-）">A−</button>
         <button id="font-up" class="icon text-icon" title="字大一點（Ctrl+=）">A＋</button>
         <button id="theme-toggle" class="icon" title="切換深淺色"></button>
+        <button id="auth-badge" class="badge acct-btn" title="切換帳號">…</button>
     </div>
+    <div id="acct-menu" class="ctx-menu acct-menu hidden"></div>
 </header>
 
 <main>
+    <!-- Log -->
+    <section id="tab-log" class="tab hidden">
+        <pre id="log"></pre>
+    </section>
+
     <!-- Settings -->
     <section id="tab-settings" class="tab">
+        <div class="card">
+            <h2>X 帳號</h2>
+            <p id="auth-state" class="muted"></p>
+            <ul id="acct-list" class="acct-list"></ul>
+            <div class="actions">
+                <button id="btn-check-auth">重新檢查目前的帳號</button>
+            </div>
+        </div>
+
+        <div class="card" id="acct-add">
+            <h2>新增帳號</h2>
+            <details id="manual-cookie" class="manual-cookie">
+                <summary>手動貼 cookie</summary>
+                <p class="muted">在瀏覽器登入要加的帳號 → 按 <kbd>F12</kbd> →「應用程式／Application」→ Cookie → <code>https://x.com</code>，複製 <code>auth_token</code> 和 <code>ct0</code> 的值貼到下面。也可以把整串 Cookie 標頭直接貼進任一格。</p>
+                <p class="muted">要加第二個帳號時，在 x.com 先登出原本的帳號再登入另一個（或用無痕視窗），才拿得到另一組 cookie。<b>不要在 x.com 按「登出」來切換已經加進來的帳號</b>：登出會讓那組 cookie 失效。用無痕視窗登入、拿完 cookie 直接關掉視窗最安全。</p>
+                <label>auth_token <input id="set-auth" type="password" autocomplete="off" placeholder="貼上 auth_token"></label>
+                <label>ct0 <input id="set-ct0" type="password" autocomplete="off" placeholder="貼上 ct0"></label>
+                <button id="btn-add-acct" class="primary">新增並切換過去</button>
+            </details>
+            <p class="warn-box">基於網頁 API 實作，可能違反 X 的使用條款，瀏覽太兇可能被限流或鎖帳號，後果請自行負責。</p>
+        </div>
+
+        <div class="card">
+            <h2>X 前端解析</h2>
+            <p class="muted">X 改版時 API 的編號會變，伺服器會自動重新解析；如果某個頁面一直出錯，可以手動重來一次。</p>
+            <p id="defs-state"></p>
+            <button id="btn-rediscover">重新解析 X 前端</button>
+            <details class="rate-box">
+                <summary>各 API 剩餘次數</summary>
+                <div id="rate-list" class="muted"></div>
+            </details>
+        </div>
+
         <div class="card">
             <h2>介面</h2>
             <label class="check"><input type="checkbox" id="set-blur"> 縮圖預設模糊（滑過或點擊才顯示）</label>
@@ -37,8 +78,16 @@
     </section>
 </main>
 
+<!-- Generic prompt dialog -->
+<dialog id="ask-dialog">
+    <h2 id="ask-title"></h2>
+    <div id="ask-body"></div>
+    <div class="actions" id="ask-buttons"></div>
+</dialog>
+
 <div id="toast"></div>
 <script src="icons.js"></script>
 <script src="app.js"></script>
+<script src="render.js"></script>
 </body>
 </html>

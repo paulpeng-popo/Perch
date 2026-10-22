@@ -3,5 +3,21 @@
    ===================================================================== */
 .small-text { font-size: .82rem; }
 .clamp { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+.warn-box { background: color-mix(in srgb, var(--warn) 14%, var(--panel)); border-radius: 8px; padding: .5rem .7rem; font-size: .88rem; }
+.rate-box { margin-top: .8rem; font-size: .88rem; }
+.rate-box summary { cursor: pointer; color: var(--muted); }
+
+/* ---- Accounts ---- */
+.acct-btn { cursor: pointer; background: var(--panel); }
+.acct-btn:hover { border-color: var(--accent); }
+.acct-menu { right: 1rem; top: 3.4rem; min-width: 16rem; max-width: calc(100vw - 1rem); }
+.acct-menu button .avatar.tiny { width: 1.6rem; height: 1.6rem; }
+.acct-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.acct-list { list-style: none; margin: 0 0 .6rem; padding: 0; }
+.acct-list li { display: flex; gap: .6rem; align-items: center; padding: .5rem 0; border-bottom: 1px solid var(--line); }
+.acct-list li:last-child { border-bottom: none; }
+.acct-list .avatar { width: 2.4rem; height: 2.4rem; }
 
 .logo-img { width: 1.9rem; height: 1.9rem; border-radius: 22%; display: block; }
+.manual-cookie { margin: .6rem 0; }
+.manual-cookie summary { cursor: pointer; color: var(--muted); margin-bottom: .5rem; }
